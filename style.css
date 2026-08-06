@@ -143,6 +143,20 @@ input, select, textarea {
   border-radius: 10px;
   padding: 11px 12px;
 }
+
+/* Numeric input improvements: remove native steppers and improve tap targets */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
+.numeric-input {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 10px 12px;
+  text-align: right;
+}
 textarea { min-height: 72px; resize: vertical; }
 .helper {
   color: var(--accent-2);

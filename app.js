@@ -231,10 +231,10 @@ const App = (() => {
             }).join('')}
           </div>
           <div class="cost-line"><span>Costo ingredienti</span><span class="value-pill">${formatCurrency(cake.ingredientCost || 0)}</span></div>
-          <div class="cost-line"><span>Decorazioni</span><span class="value-pill"><input type="number" min="0" step="0.01" data-cost-field="decorationCost" value="${Number(cake.decorationCost || 0).toFixed(2)}" /></span></div>
-          <div class="cost-line"><span>Packaging</span><span class="value-pill"><input type="number" min="0" step="0.01" data-cost-field="packagingCost" value="${Number(cake.packagingCost || 0).toFixed(2)}" /></span></div>
-          <div class="cost-line"><span>Energia</span><span class="value-pill"><input type="number" min="0" step="0.01" data-cost-field="energyCost" value="${Number(cake.energyCost || 0).toFixed(2)}" /></span></div>
-          <div class="cost-line"><span>Manodopera</span><span class="value-pill"><input type="number" min="0" step="0.01" data-cost-field="laborCost" value="${Number(cake.laborCost || 0).toFixed(2)}" /></span></div>
+          <div class="cost-line"><span>Decorazioni</span><span class="value-pill"><input type="text" inputmode="decimal" pattern="[0-9]*([.,][0-9]+)?" class="numeric-input" data-cost-field="decorationCost" value="${Number(cake.decorationCost || 0).toFixed(2)}" /></span></div>
+          <div class="cost-line"><span>Packaging</span><span class="value-pill"><input type="text" inputmode="decimal" pattern="[0-9]*([.,][0-9]+)?" class="numeric-input" data-cost-field="packagingCost" value="${Number(cake.packagingCost || 0).toFixed(2)}" /></span></div>
+          <div class="cost-line"><span>Energia</span><span class="value-pill"><input type="text" inputmode="decimal" pattern="[0-9]*([.,][0-9]+)?" class="numeric-input" data-cost-field="energyCost" value="${Number(cake.energyCost || 0).toFixed(2)}" /></span></div>
+          <div class="cost-line"><span>Manodopera</span><span class="value-pill"><input type="text" inputmode="decimal" pattern="[0-9]*([.,][0-9]+)?" class="numeric-input" data-cost-field="laborCost" value="${Number(cake.laborCost || 0).toFixed(2)}" /></span></div>
           <div class="cost-line"><span>Costo totale</span><span class="value-pill">${formatCurrency(cake.totalCost || 0)}</span></div>
           <div class="cost-line"><span>Utile</span><span class="value-pill">${formatCurrency(cake.profit || 0)}</span></div>
           <div class="cost-line"><span>Margine</span><span class="value-pill">${formatPercent(cake.marginPercent || 0)}</span></div>
@@ -245,14 +245,46 @@ const App = (() => {
     document.getElementById('save-cake-basic').addEventListener('click', saveCakeBasic);
     document.getElementById('add-ingredient-to-cake').addEventListener('click', () => openCakeIngredientModal(cakeId));
 
+    // Improved handlers: don't update DB on every keystroke (avoids losing focus).
     detail.querySelectorAll('[data-cost-field]').forEach((input) => {
-      input.addEventListener('input', async () => {
+      // select all on focus for easy overwrite
+      input.addEventListener('focus', () => setTimeout(() => input.select(), 0));
+
+      // sanitize input as user types: allow digits and one decimal separator
+      input.addEventListener('input', () => {
+        let v = input.value.replace(',', '.');
+        // remove all non-digit/decimal chars
+        v = v.replace(/[^0-9.]/g, '');
+        const parts = v.split('.');
+        if (parts.length > 2) {
+          v = parts.shift() + '.' + parts.join('');
+        }
+        input.value = v;
+      });
+
+      // allow Enter to commit
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          input.blur();
+        }
+      });
+
+      // on blur, parse, persist and refresh totals
+      input.addEventListener('blur', async () => {
         const field = input.dataset.costField;
-        const cake = await CakeDB.getById('cakes', state.db, cakeId);
-        cake[field] = Number(input.value || 0);
-        await CakeDB.putRecord('cakes', state.db, cake);
-        await CakeDB.syncCakeTotals(state.db, cakeId, cake);
-        await renderAll();
+        const raw = (input.value || '').replace(',', '.');
+        const parsed = Number(parseFloat(raw) || 0);
+        input.value = parsed.toFixed(2);
+        try {
+          const cake = await CakeDB.getById('cakes', state.db, cakeId);
+          cake[field] = parsed;
+          await CakeDB.putRecord('cakes', state.db, cake);
+          await CakeDB.syncCakeTotals(state.db, cakeId, cake);
+          await renderAll();
+        } catch (err) {
+          console.error('Errore salvataggio costo:', err);
+        }
       });
     });
 
