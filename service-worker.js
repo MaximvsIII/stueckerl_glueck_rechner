@@ -11,8 +11,11 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', event => {
+  const canCache = self.location.protocol === 'http:' || self.location.protocol === 'https:';
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
+    canCache
+      ? caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
+      : Promise.resolve()
   );
   self.skipWaiting();
 });
@@ -40,7 +43,10 @@ self.addEventListener('fetch', event => {
     fetch(request)
       .then(response => {
         const responseClone = response.clone();
-        if (request.url.startsWith(self.location.origin)) {
+        const requestUrl = new URL(request.url);
+        const sameOrigin = requestUrl.origin === self.location.origin;
+        const canCache = (requestUrl.protocol === 'http:' || requestUrl.protocol === 'https:') && sameOrigin;
+        if (canCache) {
           caches.open(CACHE_NAME).then(cache => cache.put(request, responseClone));
         }
         return response;

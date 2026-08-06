@@ -97,5 +97,14 @@
 
   <script src="db.js"></script>
   <script src="app.js"></script>
+  <script>
+    window.addEventListener('load', () => {
+      if (window.App && typeof window.App.init === 'function') {
+        window.App.init();
+      } else {
+        console.error('Calcolatore Torte App non trovato al caricamento');
+      }
+    });
+  </script>
 </body>
 </html>

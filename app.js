@@ -83,6 +83,7 @@ const App = (() => {
 
   async function renderIngredients() {
     const ingredients = await CakeDB.getAll('ingredients', state.db);
+    ingredients.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     const list = document.getElementById('ingredients-list');
     list.innerHTML = ingredients.map((ingredient) => `
       <article class="card">
@@ -333,46 +334,54 @@ const App = (() => {
   }
 
   async function saveIngredientForm() {
-    if (!state.db) {
-      state.db = await CakeDB.init();
+    try {
+      if (!state.db) {
+        state.db = await CakeDB.init();
+      }
+
+      const name = document.getElementById('ingredient-name').value.trim();
+      const category = document.getElementById('ingredient-category').value.trim();
+      const unitType = document.getElementById('ingredient-unitType').value;
+      const packageQuantity = Number(document.getElementById('ingredient-packageQuantity').value);
+      const packagePrice = Number(document.getElementById('ingredient-packagePrice').value);
+
+      if (!name) return showError('Nome ingrediente obbligatorio.');
+      if (!category) return showError('Categoria obbligatoria.');
+      if (!(packageQuantity > 0)) return showError('Quantità confezione > 0.');
+      if (!(packagePrice >= 0)) return showError('Prezzo confezione >= 0.');
+
+      const unitCost = packagePrice / packageQuantity;
+      const isEditing = Boolean(state.editingIngredientId);
+      const record = isEditing ? await CakeDB.getById('ingredients', state.db, state.editingIngredientId) : {};
+      const nextRecord = {
+        ...record,
+        name,
+        category,
+        unitType,
+        packageQuantity,
+        packagePrice,
+        unitCost,
+        active: record.active ?? true,
+        updatedAt: new Date().toISOString(),
+        createdAt: record.createdAt || new Date().toISOString()
+      };
+
+      if (isEditing) {
+        await CakeDB.putRecord('ingredients', state.db, nextRecord);
+        console.debug('Ingrediente aggiornato:', nextRecord);
+      } else {
+        await CakeDB.addRecord('ingredients', state.db, nextRecord);
+        console.debug('Ingrediente salvato:', nextRecord);
+      }
+
+      state.editingIngredientId = null;
+      closeModal();
+      await renderIngredients();
+      await renderCakes();
+    } catch (error) {
+      console.error('Errore salvataggio ingrediente:', error);
+      showError('Errore salvataggio ingrediente: ' + (error.message || error));
     }
-
-    const name = document.getElementById('ingredient-name').value.trim();
-    const category = document.getElementById('ingredient-category').value.trim();
-    const unitType = document.getElementById('ingredient-unitType').value;
-    const packageQuantity = Number(document.getElementById('ingredient-packageQuantity').value);
-    const packagePrice = Number(document.getElementById('ingredient-packagePrice').value);
-
-    if (!name) return showError('Nome ingrediente obbligatorio.');
-    if (!category) return showError('Categoria obbligatoria.');
-    if (!(packageQuantity > 0)) return showError('Quantità confezione > 0.');
-    if (!(packagePrice >= 0)) return showError('Prezzo confezione >= 0.');
-
-    const unitCost = packagePrice / packageQuantity;
-    const isEditing = Boolean(state.editingIngredientId);
-    const record = isEditing ? await CakeDB.getById('ingredients', state.db, state.editingIngredientId) : {};
-    const nextRecord = {
-      ...record,
-      name,
-      category,
-      unitType,
-      packageQuantity,
-      packagePrice,
-      unitCost,
-      active: record.active ?? true,
-      updatedAt: new Date().toISOString(),
-      createdAt: record.createdAt || new Date().toISOString()
-    };
-
-    if (isEditing) {
-      await CakeDB.putRecord('ingredients', state.db, nextRecord);
-    } else {
-      await CakeDB.addRecord('ingredients', state.db, nextRecord);
-    }
-
-    state.editingIngredientId = null;
-    closeModal();
-    await renderAll();
   }
 
   async function toggleIngredientActive(id) {
@@ -649,14 +658,18 @@ const App = (() => {
   }
 
   function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+        navigator.serviceWorker.register('./service-worker.js').catch((error) => {
+          console.warn('Service worker non registrato:', error);
+        });
       });
     }
   }
 
-  return { init };
+  const exported = { init };
+  window.App = exported;
+  return exported;
 })();
 
 window.addEventListener('DOMContentLoaded', () => App.init());
