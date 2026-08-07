@@ -11,18 +11,73 @@ const App = (() => {
     currency: 'EUR'
   });
 
-  function init() {
-    registerServiceWorker();
-    wireGlobalEvents();
+  function registerServiceWorker() {
+  if (
+    'serviceWorker' in navigator &&
+    (location.protocol === 'http:' || location.protocol === 'https:')
+  ) {
+    window.addEventListener('load', async () => {
+      try {
+        const registration = await navigator.serviceWorker.register(
+          './service-worker.js'
+        );
 
-    CakeDB.init().then(async (db) => {
-      state.db = db;
-      await ensureDefaultSettings();
-      await renderAll();
-    }).catch((error) => {
-      alert('Errore nel caricamento del database locale: ' + error.message);
+        // Controlla immediatamente se esiste una nuova versione
+        await registration.update();
+
+        // Se c'è già un nuovo Service Worker in attesa,
+        // attivalo immediatamente
+        if (registration.waiting) {
+          registration.waiting.postMessage({
+            type: 'SKIP_WAITING'
+          });
+        }
+
+        // Rileva l'installazione di un nuovo Service Worker
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+
+          if (!newWorker) {
+            return;
+          }
+
+          newWorker.addEventListener('statechange', () => {
+            if (
+              newWorker.state === 'installed' &&
+              navigator.serviceWorker.controller
+            ) {
+              newWorker.postMessage({
+                type: 'SKIP_WAITING'
+              });
+            }
+          });
+        });
+
+        // Quando il nuovo Service Worker prende il controllo,
+        // ricarica la pagina una sola volta
+        let refreshing = false;
+
+        navigator.serviceWorker.addEventListener(
+          'controllerchange',
+          () => {
+            if (refreshing) {
+              return;
+            }
+
+            refreshing = true;
+            window.location.reload();
+          }
+        );
+
+      } catch (error) {
+        console.warn(
+          'Service worker non registrato:',
+          error
+        );
+      }
     });
   }
+}
 
   function wireGlobalEvents() {
     document.querySelectorAll('.nav-item').forEach((button) => {
