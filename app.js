@@ -744,19 +744,13 @@ const App = (() => {
     return `${formatCurrency(safe)}/${unitType}`;
   }
 
-  function registerServiceWorker() {
-    if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
-      window.addEventListener('load', async () => {
-        try {
-          const registration = await navigator.serviceWorker.register('./service-worker.js');
-          if (registration.waiting) {
-            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-          }
-        } catch (error) {
-          console.warn('Service worker non registrato:', error);
-        }
-      });
-    }
+  async function init() {
+    state.db = await CakeDB.init();
+    await ensureDefaultSettings();
+    wireGlobalEvents();
+    registerServiceWorker();
+    await renderAll();
+    switchView(state.activeView);
   }
 
   const exported = { init };
