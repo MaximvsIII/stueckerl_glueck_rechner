@@ -98,13 +98,35 @@
   <script src="db.js"></script>
   <script src="app.js"></script>
   <script>
-    window.addEventListener('load', () => {
-      if (window.App && typeof window.App.init === 'function') {
-        window.App.init();
-      } else {
-        console.error('Calcolatore Torte App non trovato al caricamento');
+    (function () {
+      const version = Date.now();
+      const cssLink = document.querySelector('link[rel="stylesheet"]');
+      if (cssLink) {
+        const href = new URL(cssLink.getAttribute('href'), window.location.href);
+        href.searchParams.set('v', version);
+        cssLink.href = href.toString();
       }
-    });
+
+      const addVersionToScript = (src) => {
+        const script = document.querySelector(`script[src="${src}"]`);
+        if (script) {
+          const url = new URL(script.getAttribute('src'), window.location.href);
+          url.searchParams.set('v', version);
+          script.src = url.toString();
+        }
+      };
+
+      addVersionToScript('db.js');
+      addVersionToScript('app.js');
+
+      window.addEventListener('load', () => {
+        if (window.App && typeof window.App.init === 'function') {
+          window.App.init();
+        } else {
+          console.error('Calcolatore Torte App non trovato al caricamento');
+        }
+      });
+    })();
   </script>
 </body>
 </html>
