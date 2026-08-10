@@ -168,8 +168,8 @@ const App = (() => {
         </div>
 
         <div style="margin-top:15px; display:grid; gap:8px; border-top:1px solid var(--border); padding-top:12px;">
-          <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
-            <span style="color:var(--text-muted);">Costo: ${formatCurrency(cake.totalCost)}</span>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
+            <span style="color:var(--text-muted);">Prezzo di Vendita</span>
             <span style="font-weight:700; color:var(--accent);">${formatCurrency(cake.salePrice)}</span>
           </div>
         </div>
