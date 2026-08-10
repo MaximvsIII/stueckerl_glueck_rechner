@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Calcolatore Torte — HELVETICA NEUE PREMIUM (v21)
+   Calcolatore Torte — HELVETICA NEUE PREMIUM (v22)
    Tema: "Professional Swiss Minimalist"
    ========================================================================== */
 
@@ -105,19 +105,26 @@ body {
 
 .hero-card {
   background: linear-gradient(135deg, var(--card-elevated) 0%, var(--card-bg) 100%);
-  padding: 28px;
+  padding: 40px 28px;
   border-radius: var(--radius-lg);
   margin: 15px 0 35px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-main);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
 }
 
 .hero-card h2 {
-  margin: 0 0 18px;
+  margin: 0 0 24px;
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: -0.03em;
+  display: block;
 }
 
 /* ---------------------------------- Bottoni ---------------------------------- */
@@ -144,6 +151,13 @@ body {
   background: var(--accent);
   color: #0D0907;
   box-shadow: 0 8px 20px rgba(212, 175, 55, 0.25);
+}
+
+.btn-main {
+  width: auto;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .btn-secondary {
