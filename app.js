@@ -126,9 +126,12 @@ const App = (() => {
       const settings = await CakeDB.getAll('settings', state.db);
       if (settings.length === 0) {
         await CakeDB.addRecord('settings', state.db, {
-          currency: 'EUR', laborHourlyRate: 15, energyCostPerKwh: 0.35, defaultMargin: 60,
+          currency: 'EUR', lang: state.lang, laborHourlyRate: 15, energyCostPerKwh: 0.35, defaultMargin: 60,
           createdAt: new Date().toISOString()
         });
+      } else {
+        // Se esiste già un'impostazione lingua, usala
+        if (settings[0].lang) state.lang = settings[0].lang;
       }
       return true;
     } catch (err) {
@@ -148,6 +151,28 @@ const App = (() => {
     if (!list) return;
     const cakes = await CakeDB.getAll('cakes', state.db);
     cakes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const items = cakes.slice(0, 3);
+
+    list.innerHTML = items.length ? items.map(cake => {
+      const imgHtml = cake.imageData
+        ? `<img src="${URL.createObjectURL(cake.imageData)}" class="cake-thumb">`
+        : `<div class="image-placeholder">🎂</div>`;
+
+      return `
+      <div class="card" onclick="App.openCakeDetail(${cake.id})">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            ${imgHtml}
+            <div>
+              <h4 style="margin:0 0 4px 0;">${escapeHtml(cake.name)}</h4>
+              <p style="margin:0; font-size:0.75rem; color:var(--text-muted);">${new Date(cake.createdAt).toLocaleDateString(state.lang === 'de' ? 'de-DE' : 'it-IT')}</p>
+            </div>
+          </div>
+          <span style="font-size:1.2rem; opacity:0.5;">→</span>
+        </div>
+      </div>
+    `}).join('') : `<div class="card" style="text-align:center; padding:30px;"><p>${t('noCakesSaved')}</p></div>`;
+  }
     const latest = cakes.slice(0, 5);
 
     list.innerHTML = latest.length ? latest.map(cake => {
@@ -186,12 +211,20 @@ const App = (() => {
     const list = document.getElementById('ingredients-list');
     if (!list) return;
     const items = await CakeDB.getAll('ingredients', state.db);
-    items.sort((a, b) => a.name.localeCompare(b.name));
+    // Ordiniamo per nome tradotto nella lingua corrente
+    items.sort((a, b) => {
+      const nameA = a.translationKey ? t(a.translationKey) : a.name;
+      const nameB = b.translationKey ? t(b.translationKey) : b.name;
+      return nameA.localeCompare(nameB, state.lang);
+    });
 
     list.innerHTML = items.map(ing => {
       const displayName = ing.translationKey ? t(ing.translationKey) : ing.name;
       const displayCategory = ing.category && ing.category.startsWith('cat_') ? t(ing.category) : (ing.category || t('defaultIngredientCategory'));
-      const displayUnit = t('unit_' + ing.unitType);
+
+      // Estrae il simbolo dell'unità (es. "g" da "Grammi (g)") se presente, altrimenti usa l'originale
+      const unitText = t('unit_' + ing.unitType);
+      const unitSymbol = unitText.includes('(') ? unitText.match(/\(([^)]+)\)/)[1] : ing.unitType;
 
       return `
       <div class="card">
@@ -200,7 +233,7 @@ const App = (() => {
             <p class="eyebrow" style="margin:0;">${escapeHtml(displayCategory)}</p>
             <h4 style="margin:2px 0 8px 0;">${escapeHtml(displayName)}</h4>
             <p style="font-family:var(--font-mono); font-size:0.85rem;">
-              ${ing.packageQuantity}${displayUnit.match(/\((.*)\)/)?.[1] || ing.unitType} @ <span style="color:var(--accent);">${formatCurrency(ing.packagePrice)}</span>
+              ${ing.packageQuantity}${unitSymbol} @ <span style="color:var(--accent);">${formatCurrency(ing.packagePrice)}</span>
             </p>
           </div>
           <button class="btn btn-secondary" style="width:auto; padding:8px 12px; font-size:0.8rem;" onclick="App.openIngredientModal(${ing.id})">${t('edit')}</button>
@@ -268,10 +301,17 @@ const App = (() => {
     `;
   }
 
-  function changeLanguage(newLang) {
+  async function changeLanguage(newLang) {
     state.lang = newLang;
+
+    // Salva la preferenza nel DB
+    const settings = (await CakeDB.getAll('settings', state.db))[0];
+    if (settings) {
+      await CakeDB.putRecord('settings', state.db, { ...settings, lang: newLang });
+    }
+
     applyStaticTranslations();
-    renderAll();
+    await renderAll();
   }
 
   // --- AZIONI ---
@@ -525,7 +565,7 @@ const App = (() => {
   async function restoreIngredients() {
     if (!state.db) return;
     try {
-      await CakeDB.seedDemoData(state.db, state.lang);
+      await CakeDB.seedDemoData(state.db, state.lang, true);
       alert(t('alertPantryRestored'));
       await renderIngredients();
     } catch (e) {

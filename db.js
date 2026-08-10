@@ -35,15 +35,20 @@ const CakeDB = (() => {
     });
   }
 
-  async function seedDemoData(db, lang = 'it') {
-    const existing = await getAll('ingredients', db);
-    if (existing.length > 0) return;
+  async function seedDemoData(db, lang = 'it', force = false) {
+    if (!force) {
+      const existing = await getAll('ingredients', db);
+      if (existing.length > 0) return;
+    }
 
     const t = (key) => (Translations[lang] && Translations[lang][key]) || Translations['it'][key];
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const tx = db.transaction(['ingredients'], 'readwrite');
       const store = tx.objectStore('ingredients');
+
+      if (force) store.clear();
+
       const demo = [
         { name: t('ing_eggs'), translationKey: 'ing_eggs', category: 'cat_eggs', unitType: 'piece', packageQuantity: 10, packagePrice: 2.79 },
         { name: t('ing_flour'), translationKey: 'ing_flour', category: 'cat_flour', unitType: 'g', packageQuantity: 1000, packagePrice: 1.59 },
