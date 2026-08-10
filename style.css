@@ -271,17 +271,22 @@ body {
   bottom: 0;
   z-index: 2000;
   transition: opacity 0.3s ease;
+  padding: 0 10px;
 }
 
 .modal.hidden { display: none; opacity: 0; pointer-events: none; }
 
 .modal-card {
   width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
   background: var(--card-bg);
   border-radius: 32px 32px 0 0;
   padding: 35px 24px calc(40px + env(safe-area-inset-bottom));
   border: 1px solid var(--border);
   position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .close-btn {
@@ -350,13 +355,26 @@ input:focus {
   color: var(--text-main);
 }
 
-.value-pill {
-  background: rgba(212, 175, 55, 0.1);
-  padding: 6px 12px;
-  border-radius: 8px;
+.btn-text-danger {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 0.7rem;
   font-weight: 600;
-  color: var(--accent);
-  font-size: 0.9rem;
+  text-transform: uppercase;
+  padding: 4px 0;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+}
+
+.mini-list {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-sm);
+  padding: 0 15px;
+}
+
+.mini-list .cost-line:last-child {
+  border-bottom: none;
 }
 
 @media (min-width: 768px) {

@@ -13,6 +13,13 @@ const App = (() => {
     currency: 'EUR'
   });
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
   function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -168,7 +175,8 @@ const App = (() => {
     const cake = await CakeDB.getById('cakes', state.db, id);
     if (!cake) return;
 
-    // Determina la classe del badge in base al margine
+    const cakeIngredients = await CakeDB.getAllByIndex('cakeIngredients', state.db, 'cakeId', id);
+
     let profitClass = 'mid';
     if (cake.marginPercent >= 60) profitClass = 'high';
     if (cake.marginPercent < 40) profitClass = 'low';
@@ -179,9 +187,30 @@ const App = (() => {
         <p class="eyebrow" style="color:var(--accent);">RIEPILOGO COSTI</p>
         <h2 style="margin:5px 0 25px 0; font-size:2.2rem;">${escapeHtml(cake.name)}</h2>
 
-        <div class="cost-line"><span>Ingredienti</span> <span>${formatCurrency(cake.ingredientCost)}</span></div>
-        <div class="cost-line"><span>Decorazioni</span> <span>${formatCurrency(cake.decorationCost)}</span></div>
-        <div class="cost-line"><span>Energia/Utenze</span> <span>${formatCurrency(cake.energyCost)}</span></div>
+        <div class="section-block" style="margin-bottom:30px;">
+          <div class="section-title-row">
+            <h3 style="font-size:0.65rem;">INGREDIENTI UTILIZZATI</h3>
+            <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.7rem;" onclick="App.openAddIngredientToCakeModal(${id})">+ AGGIUNGI</button>
+          </div>
+          <div id="cake-ingredients-list" class="mini-list">
+            ${cakeIngredients.length ? cakeIngredients.map(ci => `
+              <div class="cost-line" style="padding:10px 0;">
+                <div>
+                  <p style="margin:0; font-weight:500; color:var(--text-main);">${escapeHtml(ci.name)}</p>
+                  <p style="margin:0; font-size:0.75rem; color:var(--text-muted);">${ci.amount}${ci.unitType}</p>
+                </div>
+                <div style="text-align:right;">
+                  <p style="margin:0; font-weight:600;">${formatCurrency(ci.usedCost)}</p>
+                  <button class="btn-text-danger" onclick="App.removeIngredientFromCake(${ci.id}, ${id})">Rimuovi</button>
+                </div>
+              </div>
+            `).join('') : '<p style="font-size:0.85rem; color:var(--text-muted); padding:10px 0;">Nessun ingrediente aggiunto.</p>'}
+          </div>
+        </div>
+
+        <div class="cost-line"><span>Costo Ingredienti</span> <span>${formatCurrency(cake.ingredientCost)}</span></div>
+        <div class="cost-line"><span>Decorazioni & Extra</span> <span>${formatCurrency(cake.decorationCost)}</span></div>
+        <div class="cost-line"><span>Energia & Utenze</span> <span>${formatCurrency(cake.energyCost)}</span></div>
         <div class="cost-line"><span>Manodopera</span> <span>${formatCurrency(cake.laborCost)}</span></div>
 
         <div class="cost-line" style="border-top:2px solid var(--accent); margin-top:15px; padding-top:15px;">
@@ -200,12 +229,61 @@ const App = (() => {
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:30px;">
-           <button class="btn btn-secondary" onclick="App.openEditCakeModal(${id})">MODIFICA</button>
-           <button class="btn btn-danger" onclick="App.deleteCake(${id})">ELIMINA</button>
+           <button class="btn btn-secondary" onclick="App.openEditCakeModal(${id})">DETTAGLI TECNICI</button>
+           <button class="btn btn-danger" onclick="App.deleteCake(${id})">ELIMINA PROGETTO</button>
         </div>
       </div>
     `;
     switchView('cake-detail-view');
+  }
+
+  async function openAddIngredientToCakeModal(cakeId) {
+    const allIngredients = await CakeDB.getAll('ingredients', state.db);
+    openModal(`
+      <p class="eyebrow">COMPOSIZIONE</p>
+      <h3 style="font-size:1.6rem; margin-bottom:25px; font-weight:700;">Aggiungi Ingrediente</h3>
+
+      <label>Seleziona dalla Dispensa</label>
+      <select id="m-add-ing-id" style="margin-bottom:20px;">
+        ${allIngredients.map(ing => `<option value="${ing.id}">${escapeHtml(ing.name)} (${ing.unitType})</option>`).join('')}
+      </select>
+
+      <label>Quantità Utilizzata</label>
+      <input type="number" id="m-add-ing-amount" placeholder="es. 250" style="margin-bottom:30px;">
+
+      <button class="btn btn-primary" onclick="App.addIngredientToCake(${cakeId})">AGGIUNGI ALLA TORTA</button>
+    `);
+  }
+
+  async function addIngredientToCake(cakeId) {
+    const ingId = Number(document.getElementById('m-add-ing-id').value);
+    const amount = Number(document.getElementById('m-add-ing-amount').value);
+    if (!amount || amount <= 0) return alert("Inserisci una quantità valida");
+
+    const ing = await CakeDB.getById('ingredients', state.db, ingId);
+    const usedCost = amount * ing.unitCost;
+
+    await CakeDB.addRecord('cakeIngredients', state.db, {
+      cakeId,
+      ingredientId: ingId,
+      name: ing.name,
+      amount,
+      unitType: ing.unitType,
+      usedCost
+    });
+
+    const cake = await CakeDB.getById('cakes', state.db, cakeId);
+    await CakeDB.syncCakeTotals(state.db, cakeId, cake);
+
+    closeModal();
+    openCakeDetail(cakeId);
+  }
+
+  async function removeIngredientFromCake(ciId, cakeId) {
+    await CakeDB.deleteRecord('cakeIngredients', state.db, ciId);
+    const cake = await CakeDB.getById('cakes', state.db, cakeId);
+    await CakeDB.syncCakeTotals(state.db, cakeId, cake);
+    openCakeDetail(cakeId);
   }
 
   function openModal(html) {
@@ -408,7 +486,7 @@ const App = (() => {
   }
 
   return {
-    init, openCakeDetail, openCakeModal, saveNewCake, openIngredientModal, saveIngredient, deleteCake, deleteIngredient, resetAllData, restoreIngredients, openEditCakeModal, updateCakeDetails
+    init, openCakeDetail, openCakeModal, saveNewCake, openIngredientModal, saveIngredient, deleteCake, deleteIngredient, resetAllData, restoreIngredients, openEditCakeModal, updateCakeDetails, openAddIngredientToCakeModal, addIngredientToCake, removeIngredientFromCake
   };
 })();
 
