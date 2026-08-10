@@ -101,9 +101,20 @@ const App = (() => {
           </div>
           <span style="font-size:1.5rem;">🎂</span>
         </div>
-        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
-          <span class="value-pill">${formatCurrency(cake.totalCost)}</span>
-          <span style="font-size:0.8rem; color:var(--text-muted);">Vedi dettagli →</span>
+
+        <div style="margin-top:15px; display:grid; gap:8px; border-top:1px solid var(--border); padding-top:12px;">
+          <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+            <span style="color:var(--text-muted);">Costo Totale:</span>
+            <span style="font-weight:500;">${formatCurrency(cake.totalCost)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+            <span style="color:var(--accent);">Prezzo di Vendita:</span>
+            <span style="font-weight:700; color:var(--accent);">${formatCurrency(cake.salePrice)}</span>
+          </div>
+        </div>
+
+        <div style="margin-top:12px; text-align:right;">
+          <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Dettagli & Utile →</span>
         </div>
       </div>
     `).join('') : '<div class="card" style="text-align:center; padding:30px;"><p>Nessuna torta salvata.</p></div>';
@@ -135,15 +146,34 @@ const App = (() => {
     const list = document.getElementById('cakes-list');
     if (!list) return;
     const cakes = await CakeDB.getAll('cakes', state.db);
-    list.innerHTML = cakes.map(cake => `
+    cakes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    list.innerHTML = cakes.length ? cakes.map(cake => `
       <div class="card" onclick="App.openCakeDetail(${cake.id})">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <h4>${escapeHtml(cake.name)}</h4>
-          <span class="amount">${formatCurrency(cake.profit)}</span>
+          <span style="font-size:1.2rem;">🎂</span>
         </div>
-        <p style="font-size:0.8rem;">Utile netto stimato</p>
+
+        <div style="margin-top:15px; display:grid; gap:8px; border-top:1px solid var(--border); padding-top:12px;">
+          <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+            <span style="color:var(--text-muted);">Costo Totale:</span>
+            <span>${formatCurrency(cake.totalCost)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+            <span style="color:var(--accent);">Prezzo Vendita:</span>
+            <span style="font-weight:700; color:var(--accent);">${formatCurrency(cake.salePrice)}</span>
+          </div>
+        </div>
+
+        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+           <span style="font-size:0.75rem; font-weight:600; color:${cake.profit >= 0 ? 'var(--accent-green)' : 'var(--danger)'};">
+             UTILE: ${formatCurrency(cake.profit)}
+           </span>
+           <span style="font-size:0.7rem; color:var(--text-muted);">Vedi →</span>
+        </div>
       </div>
-    `).join('');
+    `).join('') : '<div class="card" style="text-align:center; padding:30px;"><p>Nessuna torta nell\'archivio.</p></div>';
   }
 
   async function renderSettings() {
