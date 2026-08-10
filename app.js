@@ -1,5 +1,5 @@
 /**
- * APP.JS - Versione di Ripristino e Stabilità
+ * APP.JS - Versione Premium Restyling
  */
 const App = (() => {
   const state = {
@@ -13,7 +13,6 @@ const App = (() => {
     currency: 'EUR'
   });
 
-  // Gestione Service Worker con Cache Busting
   function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -22,9 +21,7 @@ const App = (() => {
             const newWorker = reg.installing;
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                if (confirm("Aggiornamento disponibile. Ricaricare ora?")) {
-                  window.location.reload();
-                }
+                // Silenzioso o con notifica discreta
               }
             });
           });
@@ -33,11 +30,7 @@ const App = (() => {
     }
   }
 
-  // Binding Eventi Sicuro
   function wireGlobalEvents() {
-    console.log("Wiring events...");
-
-    // Navigazione Bottom Bar
     document.querySelectorAll('.nav-item').forEach(btn => {
       btn.onclick = (e) => {
         e.preventDefault();
@@ -45,7 +38,6 @@ const App = (() => {
       };
     });
 
-    // Pulsanti in pagina
     const safeBind = (id, fn) => {
       const el = document.getElementById(id);
       if (el) el.onclick = (e) => { e.preventDefault(); fn(); };
@@ -63,13 +55,9 @@ const App = (() => {
     }
   }
 
-  // Inizializzazione DB e Dati
   async function initDB() {
     try {
       state.db = await CakeDB.init();
-      console.log("Database connesso correttamente.");
-
-      // Seed dei settings se mancano
       const settings = await CakeDB.getAll('settings', state.db);
       if (settings.length === 0) {
         await CakeDB.addRecord('settings', state.db, {
@@ -79,7 +67,6 @@ const App = (() => {
       }
       return true;
     } catch (err) {
-      console.error("Errore inizializzazione DB:", err);
       return false;
     }
   }
@@ -88,12 +75,7 @@ const App = (() => {
 
   async function renderAll() {
     if (!state.db) return;
-    console.log("Rendering views...");
-    try {
-      await Promise.all([renderHome(), renderIngredients(), renderCakes(), renderSettings()]);
-    } catch (e) {
-      console.error("Errore durante il rendering:", e);
-    }
+    await Promise.all([renderHome(), renderIngredients(), renderCakes(), renderSettings()]);
   }
 
   async function renderHome() {
@@ -105,24 +87,38 @@ const App = (() => {
 
     list.innerHTML = latest.length ? latest.map(cake => `
       <div class="card" onclick="App.openCakeDetail(${cake.id})">
-        <h4>${escapeHtml(cake.name)}</h4>
-        <p>Costo: ${formatCurrency(cake.totalCost)}</p>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <p class="eyebrow" style="color:var(--accent-soft); margin:0;">TORTA PERSONALIZZATA</p>
+            <h4>${escapeHtml(cake.name)}</h4>
+          </div>
+          <span style="font-size:1.5rem;">🎂</span>
+        </div>
+        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+          <span class="value-pill">${formatCurrency(cake.totalCost)}</span>
+          <span style="font-size:0.8rem; color:var(--text-muted);">Vedi dettagli →</span>
+        </div>
       </div>
-    `).join('') : '<p style="padding:20px; text-align:center; color:var(--muted)">Nessuna torta salvata.</p>';
+    `).join('') : '<div class="card" style="text-align:center; padding:30px;"><p>Nessuna torta salvata.</p></div>';
   }
 
   async function renderIngredients() {
     const list = document.getElementById('ingredients-list');
     if (!list) return;
     const items = await CakeDB.getAll('ingredients', state.db);
+    items.sort((a, b) => a.name.localeCompare(b.name));
+
     list.innerHTML = items.map(ing => `
       <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
-            <h4>${escapeHtml(ing.name)}</h4>
-            <small>${formatCurrency(ing.packagePrice)} / ${ing.packageQuantity}${ing.unitType}</small>
+            <p class="eyebrow" style="margin:0;">${escapeHtml(ing.category || 'Ingrediente')}</p>
+            <h4 style="margin:2px 0 8px 0;">${escapeHtml(ing.name)}</h4>
+            <p style="font-family:var(--font-mono); font-size:0.85rem;">
+              ${ing.packageQuantity}${ing.unitType} @ <span style="color:var(--accent);">${formatCurrency(ing.packagePrice)}</span>
+            </p>
           </div>
-          <button class="btn btn-secondary" style="width:auto;" onclick="App.openIngredientModal(${ing.id})">Modifica</button>
+          <button class="btn btn-secondary" style="width:auto; padding:8px 12px; font-size:0.8rem;" onclick="App.openIngredientModal(${ing.id})">Modifica</button>
         </div>
       </div>
     `).join('');
@@ -134,8 +130,11 @@ const App = (() => {
     const cakes = await CakeDB.getAll('cakes', state.db);
     list.innerHTML = cakes.map(cake => `
       <div class="card" onclick="App.openCakeDetail(${cake.id})">
-        <h4>${escapeHtml(cake.name)}</h4>
-        <p>Utile: ${formatCurrency(cake.profit)}</p>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h4>${escapeHtml(cake.name)}</h4>
+          <span class="amount">${formatCurrency(cake.profit)}</span>
+        </div>
+        <p style="font-size:0.8rem;">Utile netto stimato</p>
       </div>
     `).join('');
   }
@@ -146,12 +145,19 @@ const App = (() => {
     const s = (await CakeDB.getAll('settings', state.db))[0] || {};
     cont.innerHTML = `
       <div class="settings-box">
-        <label>Valuta <input type="text" value="${s.currency || 'EUR'}" readonly></label>
-        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
-          <button class="btn btn-secondary" onclick="App.restoreIngredients()">AGGIORNA/RIPRISTINA INGREDIENTI</button>
-          <button class="btn btn-danger" onclick="App.resetAllData()">ELIMINA TUTTI I DATI</button>
+        <label>Valuta Predefinita</label>
+        <input type="text" value="${s.currency || 'EUR'}" readonly style="margin-bottom:20px;">
+
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <button class="btn btn-secondary" onclick="App.restoreIngredients()">
+            <span>🔄</span> RIPRISTINA INGREDIENTI
+          </button>
+          <button class="btn btn-danger" onclick="App.resetAllData()">
+            <span>🗑️</span> ELIMINA TUTTI I DATI
+          </button>
         </div>
       </div>
+      <p style="text-align:center; font-size:0.7rem; color:var(--text-muted); margin-top:20px;">Versione Premium 1.2.0</p>
     `;
   }
 
@@ -162,16 +168,41 @@ const App = (() => {
     const cake = await CakeDB.getById('cakes', state.db, id);
     if (!cake) return;
 
+    // Determina la classe del badge in base al margine
+    let profitClass = 'mid';
+    if (cake.marginPercent >= 60) profitClass = 'high';
+    if (cake.marginPercent < 40) profitClass = 'low';
+
     const detail = document.getElementById('cake-detail-content');
     detail.innerHTML = `
       <div class="detail-panel">
-        <h2>${escapeHtml(cake.name)}</h2>
-        <div class="cost-line"><span>Costo Ingredienti</span> <span>${formatCurrency(cake.ingredientCost)}</span></div>
-        <div class="cost-line"><span>Costo Totale</span> <span>${formatCurrency(cake.totalCost)}</span></div>
-        <div class="cost-line"><span>Prezzo Vendita</span> <span>${formatCurrency(cake.salePrice)}</span></div>
-        <div class="cost-line" style="border:none; margin-top:10px; font-weight:bold;"><span>UTILE</span> <span>${formatCurrency(cake.profit)}</span></div>
+        <p class="eyebrow" style="color:var(--accent);">RIEPILOGO COSTI</p>
+        <h2 style="margin:5px 0 25px 0; font-size:2.2rem;">${escapeHtml(cake.name)}</h2>
 
-        <button class="btn btn-danger" style="margin-top:30px" onclick="App.deleteCake(${id})">Elimina Torta</button>
+        <div class="cost-line"><span>Ingredienti</span> <span>${formatCurrency(cake.ingredientCost)}</span></div>
+        <div class="cost-line"><span>Decorazioni</span> <span>${formatCurrency(cake.decorationCost)}</span></div>
+        <div class="cost-line"><span>Energia/Utenze</span> <span>${formatCurrency(cake.energyCost)}</span></div>
+        <div class="cost-line"><span>Manodopera</span> <span>${formatCurrency(cake.laborCost)}</span></div>
+
+        <div class="cost-line" style="border-top:2px solid var(--accent); margin-top:15px; padding-top:15px;">
+          <span style="font-weight:700; color:var(--text-main);">COSTO TOTALE</span>
+          <span style="font-weight:700; color:var(--text-main);">${formatCurrency(cake.totalCost)}</span>
+        </div>
+
+        <div class="cost-line" style="border:none;">
+          <span style="font-weight:700; color:var(--accent);">PREZZO VENDITA</span>
+          <span style="font-weight:700; color:var(--accent);">${formatCurrency(cake.salePrice)}</span>
+        </div>
+
+        <div class="profit-badge ${profitClass}">
+          <p style="margin:0; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em;">UTILE NETTO (${Math.round(cake.marginPercent)}%)</p>
+          <p style="margin:5px 0 0 0; font-size:2rem; font-weight:700;">${formatCurrency(cake.profit)}</p>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:30px;">
+           <button class="btn btn-secondary" onclick="App.openEditCakeModal(${id})">MODIFICA</button>
+           <button class="btn btn-danger" onclick="App.deleteCake(${id})">ELIMINA</button>
+        </div>
       </div>
     `;
     switchView('cake-detail-view');
@@ -191,9 +222,11 @@ const App = (() => {
 
   async function openCakeModal() {
     openModal(`
-      <h3>Nuova Torta</h3>
-      <input type="text" id="m-cake-name" placeholder="Nome della torta" style="margin-bottom:15px">
-      <button class="btn btn-primary" onclick="App.saveNewCake()">SALVA</button>
+      <p class="eyebrow">CREAZIONE</p>
+      <h3 style="font-size:1.6rem; margin-bottom:25px; font-weight:700; letter-spacing:-0.03em;">Nuovo Progetto</h3>
+      <label>Nome della Torta</label>
+      <input type="text" id="m-cake-name" placeholder="es. Red Velvet Matrimonio" style="margin-bottom:25px">
+      <button class="btn btn-primary" onclick="App.saveNewCake()">INIZIA PROGETTO</button>
     `);
   }
 
@@ -213,20 +246,33 @@ const App = (() => {
   async function openIngredientModal(id = null) {
     const ing = id ? await CakeDB.getById('ingredients', state.db, id) : null;
     openModal(`
-      <h3>${id ? 'Modifica' : 'Nuovo'} Ingrediente</h3>
-      <input type="text" id="m-ing-name" placeholder="Nome" value="${ing ? escapeHtml(ing.name) : ''}" style="margin-bottom:10px">
-      <div style="display:flex; gap:10px; margin-bottom:10px;">
-        <input type="number" id="m-ing-qty" placeholder="Q.tà" value="${ing ? ing.packageQuantity : ''}">
-        <select id="m-ing-unit">
-          <option value="g" ${ing?.unitType==='g'?'selected':''}>g</option>
-          <option value="kg" ${ing?.unitType==='kg'?'selected':''}>kg</option>
-          <option value="ml" ${ing?.unitType==='ml'?'selected':''}>ml</option>
-          <option value="l" ${ing?.unitType==='l'?'selected':''}>l</option>
-        </select>
+      <p class="eyebrow">${id ? 'MODIFICA' : 'AGGIUNGI'}</p>
+      <h3 style="font-size:1.6rem; margin-bottom:25px; font-weight:700; letter-spacing:-0.03em;">Ingrediente</h3>
+
+      <label>Nome</label>
+      <input type="text" id="m-ing-name" value="${ing ? escapeHtml(ing.name) : ''}" style="margin-bottom:20px">
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+        <div>
+          <label>Quantità</label>
+          <input type="number" id="m-ing-qty" value="${ing ? ing.packageQuantity : ''}">
+        </div>
+        <div>
+          <label>Unità</label>
+          <select id="m-ing-unit">
+            <option value="g" ${ing?.unitType==='g'?'selected':''}>Grammi (g)</option>
+            <option value="kg" ${ing?.unitType==='kg'?'selected':''}>Chili (kg)</option>
+            <option value="ml" ${ing?.unitType==='ml'?'selected':''}>Millilitri (ml)</option>
+            <option value="piece" ${ing?.unitType==='piece'?'selected':''}>Pezzi (pz)</option>
+          </select>
+        </div>
       </div>
-      <input type="number" id="m-ing-price" placeholder="Prezzo Confezione" value="${ing ? ing.packagePrice : ''}" style="margin-bottom:15px">
-      <button class="btn btn-primary" onclick="App.saveIngredient(${id})">SALVA</button>
-      ${id ? `<button class="btn btn-danger" style="margin-top:10px" onclick="App.deleteIngredient(${id})">ELIMINA</button>` : ''}
+
+      <label>Prezzo Confezione (€)</label>
+      <input type="number" step="0.01" id="m-ing-price" value="${ing ? ing.packagePrice : ''}" style="margin-bottom:30px">
+
+      <button class="btn btn-primary" onclick="App.saveIngredient(${id})">SALVA IN DISPENSA</button>
+      ${id ? `<button class="btn btn-ghost" style="margin-top:12px; color:var(--danger); border-color:rgba(255,94,94,0.2);" onclick="App.deleteIngredient(${id})">ELIMINA</button>` : ''}
     `);
   }
 
@@ -252,7 +298,7 @@ const App = (() => {
   }
 
   async function deleteCake(id) {
-    if (confirm("Sei sicuro?")) {
+    if (confirm("Sei sicuro di voler eliminare questa torta?")) {
       await CakeDB.deleteRecord('cakes', state.db, id);
       closeModal();
       switchView('cakes-view');
@@ -261,7 +307,7 @@ const App = (() => {
   }
 
   async function deleteIngredient(id) {
-    if (confirm("Eliminare l'ingrediente?")) {
+    if (confirm("Eliminare l'ingrediente dalla dispensa?")) {
       await CakeDB.deleteRecord('ingredients', state.db, id);
       closeModal();
       await renderIngredients();
@@ -269,7 +315,7 @@ const App = (() => {
   }
 
   async function resetAllData() {
-    if (confirm("CANCELLARE TUTTI I DATI? Questa azione non è reversibile.")) {
+    if (confirm("ATTENZIONE: Stai per cancellare tutte le torte e gli ingredienti. Procedere?")) {
       const dbs = await window.indexedDB.databases();
       dbs.forEach(db => window.indexedDB.deleteDatabase(db.name));
       window.location.reload();
@@ -280,7 +326,7 @@ const App = (() => {
     if (!state.db) return;
     try {
       await CakeDB.seedDemoData(state.db);
-      alert("Ingredienti aggiornati con successo!");
+      alert("Dispensa aggiornata con i dati predefiniti!");
       await renderIngredients();
     } catch (e) {
       alert("Errore durante l'aggiornamento.");
@@ -288,20 +334,70 @@ const App = (() => {
   }
 
   function switchView(viewName) {
-    console.log("Switching to:", viewName);
     state.activeView = viewName;
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === viewName));
     document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-view') === viewName));
     window.scrollTo(0,0);
   }
 
-  function escapeHtml(s) {
-    if (!s) return "";
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  async function openEditCakeModal(id) {
+    const cake = await CakeDB.getById('cakes', state.db, id);
+    openModal(`
+      <p class="eyebrow">DETTAGLI TECNICI</p>
+      <h3 style="font-size:1.6rem; margin-bottom:20px; font-weight:700;">Modifica ${escapeHtml(cake.name)}</h3>
+
+      <label>Nome Progetto</label>
+      <input type="text" id="e-cake-name" value="${escapeHtml(cake.name)}" style="margin-bottom:15px">
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+        <div>
+          <label>Decorazioni (€)</label>
+          <input type="number" step="0.01" id="e-cake-dec" value="${cake.decorationCost || 0}">
+        </div>
+        <div>
+          <label>Imballaggio (€)</label>
+          <input type="number" step="0.01" id="e-cake-pack" value="${cake.packagingCost || 0}">
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+        <div>
+          <label>Manodopera (€)</label>
+          <input type="number" step="0.01" id="e-cake-labor" value="${cake.laborCost || 0}">
+        </div>
+        <div>
+          <label>Energia (€)</label>
+          <input type="number" step="0.01" id="e-cake-energy" value="${cake.energyCost || 0}">
+        </div>
+      </div>
+
+      <label>Prezzo di Vendita (€)</label>
+      <input type="number" step="0.01" id="e-cake-sale" value="${cake.salePrice || 0}" style="margin-bottom:25px; border-color:var(--accent);">
+
+      <button class="btn btn-primary" onclick="App.updateCakeDetails(${id})">AGGIORNA CALCOLI</button>
+    `);
+  }
+
+  async function updateCakeDetails(id) {
+    const cake = await CakeDB.getById('cakes', state.db, id);
+    const data = {
+      ...cake,
+      name: document.getElementById('e-cake-name').value.trim(),
+      decorationCost: Number(document.getElementById('e-cake-dec').value),
+      packagingCost: Number(document.getElementById('e-cake-pack').value),
+      laborCost: Number(document.getElementById('e-cake-labor').value),
+      energyCost: Number(document.getElementById('e-cake-energy').value),
+      salePrice: Number(document.getElementById('e-cake-sale').value)
+    };
+
+    await CakeDB.putRecord('cakes', state.db, data);
+    await CakeDB.syncCakeTotals(state.db, id, data);
+    closeModal();
+    await openCakeDetail(id);
+    await renderAll();
   }
   function formatCurrency(v) { return currencyFormatter.format(v || 0); }
 
-  // Init finale
   async function init() {
     registerServiceWorker();
     wireGlobalEvents();
@@ -312,9 +408,8 @@ const App = (() => {
   }
 
   return {
-    init, openCakeDetail, openCakeModal, saveNewCake, openIngredientModal, saveIngredient, deleteCake, deleteIngredient, resetAllData, restoreIngredients
+    init, openCakeDetail, openCakeModal, saveNewCake, openIngredientModal, saveIngredient, deleteCake, deleteIngredient, resetAllData, restoreIngredients, openEditCakeModal, updateCakeDetails
   };
 })();
 
-// Lancio
 document.addEventListener('DOMContentLoaded', () => App.init());

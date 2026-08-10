@@ -3,19 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#17232C" />
+  <meta name="theme-color" content="#120C09" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="description" content="Calcolatore Torte PWA per iPhone" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css?v=11" />
-  <title>Calcolatore Torte</title>
+  <link rel="stylesheet" href="style.css?v=21" />
+  <title>Jasmins Stückerl Glück</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">PWA offline</p>
+        <p class="eyebrow">Jasmins Stückerl Glück</p>
         <h1>Calcolatore Torte</h1>
       </div>
     </header>
@@ -23,13 +22,15 @@
     <main class="main-content">
       <section id="home-view" class="view active">
         <div class="hero-card">
-          <h2>🧁 Calcolatore Torte</h2>
-          <button id="new-cake-home" class="btn btn-primary btn-main">+ NUOVA TORTA</button>
+          <h2>🧁 Benvenuto in Pasticceria</h2>
+          <button id="new-cake-home" class="btn btn-primary btn-main">
+            <span>+</span> NUOVO PROGETTO TORTA
+          </button>
         </div>
 
         <div class="section-block">
           <div class="section-title-row">
-            <h3>ULTIME TORTE</h3>
+            <h3>ULTIME CREAZIONI</h3>
           </div>
           <div id="latest-cakes-list" class="card-list"></div>
         </div>
@@ -37,16 +38,16 @@
 
       <section id="cakes-view" class="view">
         <div class="section-title-row">
-          <h3>Torte</h3>
-          <button id="new-cake-cakes" class="btn btn-primary">+ NUOVA TORTA</button>
+          <h3>Archivio Torte</h3>
+          <button id="new-cake-cakes" class="btn btn-primary" style="width:auto; padding:8px 15px;">+</button>
         </div>
         <div id="cakes-list" class="card-list"></div>
       </section>
 
       <section id="ingredients-view" class="view">
         <div class="section-title-row">
-          <h3>Ingredienti</h3>
-          <button id="new-ingredient-btn" class="btn btn-primary">+ NUOVO INGREDIENTE</button>
+          <h3>Dispensa Ingredienti</h3>
+          <button id="new-ingredient-btn" class="btn btn-primary" style="width:auto; padding:8px 15px;">+</button>
         </div>
         <div id="ingredients-list" class="card-list"></div>
       </section>
@@ -54,7 +55,7 @@
       <section id="settings-view" class="view">
         <div class="section-block">
           <div class="section-title-row">
-            <h3>Impostazioni</h3>
+            <h3>Configurazione</h3>
           </div>
           <div id="settings-content" class="settings-panel"></div>
         </div>
@@ -62,7 +63,7 @@
 
       <section id="cake-detail-view" class="view">
         <div class="section-title-row">
-          <button id="back-to-cakes" class="btn btn-ghost">← Indietro</button>
+          <button id="back-to-cakes" class="btn btn-ghost" style="width:auto;">← Torna all'elenco</button>
         </div>
         <div id="cake-detail-content" class="cake-detail"></div>
       </section>
@@ -79,7 +80,7 @@
       </button>
       <button class="nav-item" data-view="ingredients-view">
         <span>🥣</span>
-        <small>Ingredienti</small>
+        <small>Dispensa</small>
       </button>
       <button class="nav-item" data-view="settings-view">
         <span>⚙️</span>
@@ -95,7 +96,7 @@
     </div>
   </div>
 
-  <script src="db.js?v=11"></script>
-  <script src="app.js?v=11"></script>
+  <script src="db.js?v=21"></script>
+  <script src="app.js?v=21"></script>
 </body>
 </html>
