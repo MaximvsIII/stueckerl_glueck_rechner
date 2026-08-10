@@ -178,5 +178,5 @@ const CakeDB = (() => {
     return db;
   }
 
-  return { init, getAll, getById, getAllByIndex, putRecord, addRecord, deleteRecord, clearStore, syncCakeTotals };
+  return { init, getAll, getById, getAllByIndex, putRecord, addRecord, deleteRecord, clearStore, syncCakeTotals, seedDemoData };
 })();

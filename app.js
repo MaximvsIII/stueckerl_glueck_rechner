@@ -147,7 +147,10 @@ const App = (() => {
     cont.innerHTML = `
       <div class="settings-box">
         <label>Valuta <input type="text" value="${s.currency || 'EUR'}" readonly></label>
-        <button class="btn btn-danger" style="margin-top:20px" onclick="App.resetAllData()">ELIMINA TUTTI I DATI</button>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+          <button class="btn btn-secondary" onclick="App.restoreIngredients()">AGGIORNA/RIPRISTINA INGREDIENTI</button>
+          <button class="btn btn-danger" onclick="App.resetAllData()">ELIMINA TUTTI I DATI</button>
+        </div>
       </div>
     `;
   }
@@ -273,6 +276,17 @@ const App = (() => {
     }
   }
 
+  async function restoreIngredients() {
+    if (!state.db) return;
+    try {
+      await CakeDB.seedDemoData(state.db);
+      alert("Ingredienti aggiornati con successo!");
+      await renderIngredients();
+    } catch (e) {
+      alert("Errore durante l'aggiornamento.");
+    }
+  }
+
   function switchView(viewName) {
     console.log("Switching to:", viewName);
     state.activeView = viewName;
@@ -298,7 +312,7 @@ const App = (() => {
   }
 
   return {
-    init, openCakeDetail, openCakeModal, saveNewCake, openIngredientModal, saveIngredient, deleteCake, deleteIngredient, resetAllData
+    init, openCakeDetail, openCakeModal, saveNewCake, openIngredientModal, saveIngredient, deleteCake, deleteIngredient, resetAllData, restoreIngredients
   };
 })();
 
