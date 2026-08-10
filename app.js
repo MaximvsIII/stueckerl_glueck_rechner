@@ -304,10 +304,13 @@ const App = (() => {
   async function changeLanguage(newLang) {
     state.lang = newLang;
 
-    // Salva la preferenza nel DB
-    const settings = (await CakeDB.getAll('settings', state.db))[0];
-    if (settings) {
-      await CakeDB.putRecord('settings', state.db, { ...settings, lang: newLang });
+    try {
+      const settings = (await CakeDB.getAll('settings', state.db))[0];
+      if (settings) {
+        await CakeDB.putRecord('settings', state.db, { ...settings, lang: newLang });
+      }
+    } catch (e) {
+      console.warn("Could not save language preference", e);
     }
 
     applyStaticTranslations();
@@ -659,10 +662,10 @@ const App = (() => {
 
   async function init() {
     detectLanguage();
+    const ok = await initDB();
     registerServiceWorker();
     wireGlobalEvents();
     applyStaticTranslations();
-    const ok = await initDB();
     if (ok) {
       await renderAll();
     }
