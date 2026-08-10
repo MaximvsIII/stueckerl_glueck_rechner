@@ -45,16 +45,16 @@ const CakeDB = (() => {
       const tx = db.transaction(['ingredients'], 'readwrite');
       const store = tx.objectStore('ingredients');
       const demo = [
-        { name: t('ing_eggs'), category: 'Uova', unitType: 'piece', packageQuantity: 10, packagePrice: 2.79 },
-        { name: t('ing_flour'), category: 'Farine', unitType: 'g', packageQuantity: 1000, packagePrice: 1.59 },
-        { name: t('ing_sugar'), category: 'Zuccheri', unitType: 'g', packageQuantity: 1000, packagePrice: 1.79 },
-        { name: t('ing_butter'), category: 'Latticini', unitType: 'g', packageQuantity: 250, packagePrice: 2.79 },
-        { name: t('ing_cream'), category: 'Latticini', unitType: 'ml', packageQuantity: 250, packagePrice: 1.49 },
-        { name: t('ing_mascarpone'), category: 'Latticini', unitType: 'g', packageQuantity: 500, packagePrice: 4.39 },
-        { name: t('ing_chocolate'), category: 'Cioccolato', unitType: 'g', packageQuantity: 200, packagePrice: 2.99 },
-        { name: t('ing_yeast'), category: 'Lieviti', unitType: 'g', packageQuantity: 16, packagePrice: 0.50 },
-        { name: t('ing_vanilla'), category: 'Aromi', unitType: 'ml', packageQuantity: 30, packagePrice: 4.50 },
-        { name: t('ing_strawberries'), category: 'Frutta', unitType: 'g', packageQuantity: 250, packagePrice: 3.50 }
+        { name: t('ing_eggs'), translationKey: 'ing_eggs', category: 'cat_eggs', unitType: 'piece', packageQuantity: 10, packagePrice: 2.79 },
+        { name: t('ing_flour'), translationKey: 'ing_flour', category: 'cat_flour', unitType: 'g', packageQuantity: 1000, packagePrice: 1.59 },
+        { name: t('ing_sugar'), translationKey: 'ing_sugar', category: 'cat_sugar', unitType: 'g', packageQuantity: 1000, packagePrice: 1.79 },
+        { name: t('ing_butter'), translationKey: 'ing_butter', category: 'cat_dairy', unitType: 'g', packageQuantity: 250, packagePrice: 2.79 },
+        { name: t('ing_cream'), translationKey: 'ing_cream', category: 'cat_dairy', unitType: 'ml', packageQuantity: 250, packagePrice: 1.49 },
+        { name: t('ing_mascarpone'), translationKey: 'ing_mascarpone', category: 'cat_dairy', unitType: 'g', packageQuantity: 500, packagePrice: 4.39 },
+        { name: t('ing_chocolate'), translationKey: 'ing_chocolate', category: 'cat_chocolate', unitType: 'g', packageQuantity: 200, packagePrice: 2.99 },
+        { name: t('ing_yeast'), translationKey: 'ing_yeast', category: 'cat_yeast', unitType: 'g', packageQuantity: 16, packagePrice: 0.50 },
+        { name: t('ing_vanilla'), translationKey: 'ing_vanilla', category: 'cat_flavors', unitType: 'ml', packageQuantity: 30, packagePrice: 4.50 },
+        { name: t('ing_strawberries'), translationKey: 'ing_strawberries', category: 'cat_fruit', unitType: 'g', packageQuantity: 250, packagePrice: 3.50 }
       ];
 
       demo.forEach(item => {

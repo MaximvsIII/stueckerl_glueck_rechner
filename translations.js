@@ -78,7 +78,19 @@ const Translations = {
     ing_chocolate: "Cioccolato Fondente",
     ing_yeast: "Lievito per dolci",
     ing_vanilla: "Estratto di Vaniglia",
-    ing_strawberries: "Fragole Fresche"
+    ing_strawberries: "Fragole Fresche",
+    unit_g: "Grammi (g)",
+    unit_kg: "Chili (kg)",
+    unit_ml: "Millilitri (ml)",
+    unit_piece: "Pezzi (pz)",
+    cat_eggs: "Uova",
+    cat_flour: "Farine",
+    cat_sugar: "Zuccheri",
+    cat_dairy: "Latticini",
+    cat_chocolate: "Cioccolato",
+    cat_yeast: "Lieviti",
+    cat_flavors: "Aromi",
+    cat_fruit: "Frutta"
   },
   de: {
     appTitle: "Torten-Rechner",
@@ -159,6 +171,18 @@ const Translations = {
     ing_chocolate: "Zartbitterschokolade",
     ing_yeast: "Hefe",
     ing_vanilla: "Vanilleextrakt",
-    ing_strawberries: "Erdbeeren"
+    ing_strawberries: "Erdbeeren",
+    unit_g: "Gramm (g)",
+    unit_kg: "Kilogramm (kg)",
+    unit_ml: "Milliliter (ml)",
+    unit_piece: "Stück (stk)",
+    cat_eggs: "Eier",
+    cat_flour: "Mehl",
+    cat_sugar: "Zucker",
+    cat_dairy: "Milchprodukte",
+    cat_chocolate: "Schokolade",
+    cat_yeast: "Hefe",
+    cat_flavors: "Aromen",
+    cat_fruit: "Früchte"
   }
 };

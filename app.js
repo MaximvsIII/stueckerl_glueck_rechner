@@ -188,20 +188,25 @@ const App = (() => {
     const items = await CakeDB.getAll('ingredients', state.db);
     items.sort((a, b) => a.name.localeCompare(b.name));
 
-    list.innerHTML = items.map(ing => `
+    list.innerHTML = items.map(ing => {
+      const displayName = ing.translationKey ? t(ing.translationKey) : ing.name;
+      const displayCategory = ing.category && ing.category.startsWith('cat_') ? t(ing.category) : (ing.category || t('defaultIngredientCategory'));
+      const displayUnit = t('unit_' + ing.unitType);
+
+      return `
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
-            <p class="eyebrow" style="margin:0;">${escapeHtml(ing.category || t('defaultIngredientCategory'))}</p>
-            <h4 style="margin:2px 0 8px 0;">${escapeHtml(ing.name)}</h4>
+            <p class="eyebrow" style="margin:0;">${escapeHtml(displayCategory)}</p>
+            <h4 style="margin:2px 0 8px 0;">${escapeHtml(displayName)}</h4>
             <p style="font-family:var(--font-mono); font-size:0.85rem;">
-              ${ing.packageQuantity}${ing.unitType} @ <span style="color:var(--accent);">${formatCurrency(ing.packagePrice)}</span>
+              ${ing.packageQuantity}${displayUnit.match(/\((.*)\)/)?.[1] || ing.unitType} @ <span style="color:var(--accent);">${formatCurrency(ing.packagePrice)}</span>
             </p>
           </div>
           <button class="btn btn-secondary" style="width:auto; padding:8px 12px; font-size:0.8rem;" onclick="App.openIngredientModal(${ing.id})">${t('edit')}</button>
         </div>
       </div>
-    `).join('');
+    `;}).join('');
   }
 
   async function renderCakes() {
@@ -305,10 +310,12 @@ const App = (() => {
             <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.7rem;" onclick="App.openAddIngredientToCakeModal(${id})">+ ${t('addIngredient')}</button>
           </div>
           <div id="cake-ingredients-list" class="mini-list">
-            ${cakeIngredients.length ? cakeIngredients.map(ci => `
+            ${cakeIngredients.length ? cakeIngredients.map(ci => {
+              const displayName = ci.translationKey ? t(ci.translationKey) : ci.name;
+              return `
               <div class="cost-line" style="padding:10px 0;">
                 <div>
-                  <p style="margin:0; font-weight:500; color:var(--text-main);">${escapeHtml(ci.name)}</p>
+                  <p style="margin:0; font-weight:500; color:var(--text-main);">${escapeHtml(displayName)}</p>
                   <p style="margin:0; font-size:0.75rem; color:var(--text-muted);">${ci.amount}${ci.unitType}</p>
                 </div>
                 <div style="text-align:right;">
@@ -316,7 +323,7 @@ const App = (() => {
                   <button class="btn-text-danger" onclick="App.removeIngredientFromCake(${ci.id}, ${id})">${t('remove')}</button>
                 </div>
               </div>
-            `).join('') : `<p style="font-size:0.85rem; color:var(--text-muted); padding:10px 0;">${t('noIngredientsAdded')}</p>`}
+            `;}).join('') : `<p style="font-size:0.85rem; color:var(--text-muted); padding:10px 0;">${t('noIngredientsAdded')}</p>`}
           </div>
         </div>
 
@@ -352,18 +359,21 @@ const App = (() => {
   async function openAddIngredientToCakeModal(cakeId) {
     const allIngredients = await CakeDB.getAll('ingredients', state.db);
     openModal(`
-      <p class="eyebrow">COMPOSIZIONE</p>
-      <h3 style="font-size:1.6rem; margin-bottom:25px; font-weight:700;">Aggiungi Ingrediente</h3>
+      <p class="eyebrow">${t('composition')}</p>
+      <h3 style="font-size:1.6rem; margin-bottom:25px; font-weight:700;">${t('addIngredient')}</h3>
 
-      <label>Seleziona dalla Dispensa</label>
+      <label>${t('selectFromPantry')}</label>
       <select id="m-add-ing-id" style="margin-bottom:20px;">
-        ${allIngredients.map(ing => `<option value="${ing.id}">${escapeHtml(ing.name)} (${ing.unitType})</option>`).join('')}
+        ${allIngredients.map(ing => {
+          const displayName = ing.translationKey ? t(ing.translationKey) : ing.name;
+          return `<option value="${ing.id}">${escapeHtml(displayName)} (${t('unit_' + ing.unitType)})</option>`;
+        }).join('')}
       </select>
 
-      <label>Quantità Utilizzata</label>
+      <label>${t('amountUsed')}</label>
       <input type="number" id="m-add-ing-amount" placeholder="es. 250" style="margin-bottom:30px;">
 
-      <button class="btn btn-primary" onclick="App.addIngredientToCake(${cakeId})">AGGIUNGI ALLA TORTA</button>
+      <button class="btn btn-primary" onclick="App.addIngredientToCake(${cakeId})">${t('addIngredientToCake')}</button>
     `);
   }
 
