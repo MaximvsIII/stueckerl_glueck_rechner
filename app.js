@@ -701,17 +701,25 @@ const App = (() => {
   }
 
   async function init() {
-    state.db = await CakeDB.init();
-    await ensureDefaultSettings();
-    wireGlobalEvents();
-    registerServiceWorker();
-    await renderAll();
-    switchView(state.activeView);
+    try {
+      state.db = await CakeDB.init();
+      await ensureDefaultSettings();
+      wireGlobalEvents();
+      registerServiceWorker();
+      await renderAll();
+      switchView(state.activeView);
+      console.log('App inizializzata correttamente');
+    } catch (err) {
+      console.error('Errore durante init:', err);
+    }
   }
 
-  const exported = { init };
-  window.App = exported;
-  return exported;
+  return { init };
 })();
 
-window.addEventListener('DOMContentLoaded', () => App.init());
+// Inizializzazione sicura
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => App.init());
+} else {
+  App.init();
+}

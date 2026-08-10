@@ -372,6 +372,7 @@ textarea { min-height: 76px; resize: vertical; }
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 1000;
   padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
   background: rgba(28, 20, 15, 0.94);
   backdrop-filter: blur(16px);
@@ -388,6 +389,8 @@ textarea { min-height: 76px; resize: vertical; }
   padding: 8px 6px;
   border-radius: 13px;
   transition: background 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-item.active {
