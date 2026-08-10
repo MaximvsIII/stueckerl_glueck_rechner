@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calcolatore-torte-v6'; // Incrementa questo numero ad ogni update
+const CACHE_NAME = 'calcolatore-torte-v7'; // Incrementa questo numero ad ogni update
 
 const ASSETS = [
   './',
