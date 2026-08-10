@@ -372,51 +372,41 @@ textarea { min-height: 76px; resize: vertical; }
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1000;
-  padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
-  background: rgba(28, 20, 15, 0.94);
-  backdrop-filter: blur(16px);
-  border-top: 1px solid var(--border);
+  z-index: 9999; /* Massima priorità */
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: #1C140F; /* Solido per evitare problemi di trasparenza */
+  border-top: 1px solid var(--border-strong);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  gap: 8px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
 }
 
 .nav-item {
   background: transparent;
   border: none;
   color: var(--muted);
-  padding: 8px 6px;
-  border-radius: 13px;
-  transition: background 0.15s ease, color 0.15s ease;
+  padding: 10px 5px;
+  border-radius: 12px;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  touch-action: manipulation;
 }
-
-.nav-item.active {
-  color: var(--accent-strong);
-  background: rgba(232, 167, 61, 0.12);
-}
-
-.nav-item span { display: block; font-size: 1.15rem; }
-.nav-item small {
-  display: block;
-  margin-top: 3px;
-  font-size: 0.7rem;
-  font-weight: 500;
-}
-
-/* ---------------------------------- Modale ---------------------------------- */
 
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(12, 8, 5, 0.68);
+  background: rgba(0, 0, 0, 0.85);
   padding: 18px;
-  z-index: 8;
+  z-index: 10000; /* Sopra la nav */
   display: flex;
-  align-items: flex-end;
-  backdrop-filter: blur(3px);
+  align-items: center; /* Centrata su mobile */
+  justify-content: center;
+  backdrop-filter: blur(5px);
 }
 .modal.hidden { display: none; }
 
