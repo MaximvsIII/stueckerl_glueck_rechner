@@ -87,9 +87,12 @@ const CakeDB = (() => {
 
   async function seedDemoData(db) {
     const existing = await getAll('ingredients', db);
-    if (existing.length === 0) {
-      const demo = createSeedIngredients();
-      for (const item of demo) {
+    const existingNames = new Set(existing.map(i => i.name.toLowerCase()));
+
+    const demo = createSeedIngredients();
+    for (const item of demo) {
+      // Se l'ingrediente non esiste ancora (per nome), lo aggiungo
+      if (!existingNames.has(item.name.toLowerCase())) {
         item.unitCost = item.packagePrice / item.packageQuantity;
         item.createdAt = new Date().toISOString();
         await addRecord('ingredients', db, item);

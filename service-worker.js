@@ -1,55 +1,51 @@
-const CACHE_NAME = 'calcolatore-torte-v7'; // Incrementa questo numero ad ogni update
-
-const ASSETS = [
-  './',
-  './index.html',
-  './style.css',
-  './app.js',
-  './db.js',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+const CACHE_NAME = 'calcolatore-torte-v8';
+const ASSETS_TO_CACHE = [
+  'index.html',
+  'style.css',
+  'app.js',
+  'db.js',
+  'manifest.json',
+  'icon-192.png',
+  'icon-512.png'
 ];
 
-// INSTALL: Scarica gli asset e forza l'attivazione
-self.addEventListener('install', event => {
+// Installazione: cache immediata
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
   );
+  self.skipWaiting();
 });
 
-// ACTIVATE: Pulisce le vecchie cache e prende il controllo
-self.addEventListener('activate', event => {
+// Attivazione: pulizia vecchie cache
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(keys => {
+    caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter(key => key !== CACHE_NAME)
-            .map(key => caches.delete(key))
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
       );
-    }).then(() => self.clients.claim())
+    })
   );
+  return self.clients.claim();
 });
 
-// FETCH: Strategia Network-First con fallback in cache
-self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
-
+// Fetch: Strategia "Network-First"
+// Prova a scaricare dal web. Se fallisce (offline), usa la cache.
+self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
-      .then(response => {
-        // Se la risposta è valida, la cloniamo nella cache
-        if (response && response.status === 200 && response.type === 'basic') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseToCache);
-          });
-        }
+      .then((response) => {
+        // Se la rete risponde, aggiorna la cache e restituisci
+        const clonedResponse = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, clonedResponse);
+        });
         return response;
       })
       .catch(() => {
-        // Se il network fallisce, prova a restituire dalla cache
+        // Se la rete fallisce, usa la cache
         return caches.match(event.request);
       })
   );
