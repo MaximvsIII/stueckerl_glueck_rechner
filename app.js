@@ -92,14 +92,22 @@ const App = (() => {
     cakes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     const latest = cakes.slice(0, 5);
 
-    list.innerHTML = latest.length ? latest.map(cake => `
+    list.innerHTML = latest.length ? latest.map(cake => {
+      const imgHtml = cake.imageData
+        ? `<img src="${URL.createObjectURL(cake.imageData)}" class="cake-thumb">`
+        : `<div class="image-placeholder">🎂</div>`;
+
+      return `
       <div class="card" onclick="App.openCakeDetail(${cake.id})">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <p class="eyebrow" style="color:var(--accent-soft); margin:0;">TORTA PERSONALIZZATA</p>
-            <h4>${escapeHtml(cake.name)}</h4>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:15px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            ${imgHtml}
+            <div>
+              <p class="eyebrow" style="color:var(--accent-soft); margin:0;">TORTA PERSONALIZZATA</p>
+              <h4>${escapeHtml(cake.name)}</h4>
+            </div>
           </div>
-          <span style="font-size:1.5rem;">🎂</span>
+          <span style="font-size:1.2rem; opacity:0.5;">→</span>
         </div>
 
         <div style="margin-top:15px; display:grid; gap:8px; border-top:1px solid var(--border); padding-top:12px;">
@@ -112,12 +120,8 @@ const App = (() => {
             <span style="font-weight:700; color:var(--accent);">${formatCurrency(cake.salePrice)}</span>
           </div>
         </div>
-
-        <div style="margin-top:12px; text-align:right;">
-          <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Dettagli & Utile →</span>
-        </div>
       </div>
-    `).join('') : '<div class="card" style="text-align:center; padding:30px;"><p>Nessuna torta salvata.</p></div>';
+    `}).join('') : '<div class="card" style="text-align:center; padding:30px;"><p>Nessuna torta salvata.</p></div>';
   }
 
   async function renderIngredients() {
@@ -148,32 +152,29 @@ const App = (() => {
     const cakes = await CakeDB.getAll('cakes', state.db);
     cakes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    list.innerHTML = cakes.length ? cakes.map(cake => `
+    list.innerHTML = cakes.length ? cakes.map(cake => {
+      const imgHtml = cake.imageData
+        ? `<img src="${URL.createObjectURL(cake.imageData)}" class="cake-thumb">`
+        : `<div class="image-placeholder">🎂</div>`;
+
+      return `
       <div class="card" onclick="App.openCakeDetail(${cake.id})">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <h4>${escapeHtml(cake.name)}</h4>
-          <span style="font-size:1.2rem;">🎂</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            ${imgHtml}
+            <h4>${escapeHtml(cake.name)}</h4>
+          </div>
+          <span style="font-size:1.2rem; opacity:0.5;">→</span>
         </div>
 
         <div style="margin-top:15px; display:grid; gap:8px; border-top:1px solid var(--border); padding-top:12px;">
           <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
-            <span style="color:var(--text-muted);">Costo Totale:</span>
-            <span>${formatCurrency(cake.totalCost)}</span>
-          </div>
-          <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
-            <span style="color:var(--accent);">Prezzo Vendita:</span>
+            <span style="color:var(--text-muted);">Costo: ${formatCurrency(cake.totalCost)}</span>
             <span style="font-weight:700; color:var(--accent);">${formatCurrency(cake.salePrice)}</span>
           </div>
         </div>
-
-        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
-           <span style="font-size:0.75rem; font-weight:600; color:${cake.profit >= 0 ? 'var(--accent-green)' : 'var(--danger)'};">
-             UTILE: ${formatCurrency(cake.profit)}
-           </span>
-           <span style="font-size:0.7rem; color:var(--text-muted);">Vedi →</span>
-        </div>
       </div>
-    `).join('') : '<div class="card" style="text-align:center; padding:30px;"><p>Nessuna torta nell\'archivio.</p></div>';
+    `}).join('') : '<div class="card" style="text-align:center; padding:30px;"><p>Nessuna torta nell\'archivio.</p></div>';
   }
 
   async function renderSettings() {
@@ -212,8 +213,19 @@ const App = (() => {
     if (cake.marginPercent < 40) profitClass = 'low';
 
     const detail = document.getElementById('cake-detail-content');
+
+    const heroImgHtml = cake.imageData
+      ? `<img src="${URL.createObjectURL(cake.imageData)}" class="cake-hero-img" onclick="App.triggerImageUpload()">`
+      : `<div class="upload-zone" onclick="App.triggerImageUpload()">
+           <span style="font-size:2rem; display:block; margin-bottom:10px;">📸</span>
+           <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">AGGIUNGI FOTO DELLA TORTA</p>
+         </div>`;
+
     detail.innerHTML = `
       <div class="detail-panel">
+        ${heroImgHtml}
+        <input type="file" id="cake-image-input" accept="image/*" style="display:none;" onchange="App.handleImageUpload(event, ${id})">
+
         <p class="eyebrow" style="color:var(--accent);">RIEPILOGO COSTI</p>
         <h2 style="margin:5px 0 25px 0; font-size:2.2rem;">${escapeHtml(cake.name)}</h2>
 
@@ -504,6 +516,25 @@ const App = (() => {
     await openCakeDetail(id);
     await renderAll();
   }
+
+  function triggerImageUpload() {
+    const input = document.getElementById('cake-image-input');
+    if (input) input.click();
+  }
+
+  async function handleImageUpload(event, cakeId) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Opzionale: Qui potremmo ridimensionare l'immagine prima di salvarla per risparmiare spazio
+    const cake = await CakeDB.getById('cakes', state.db, cakeId);
+    cake.imageData = file;
+    cake.updatedAt = new Date().toISOString();
+
+    await CakeDB.putRecord('cakes', state.db, cake);
+    await openCakeDetail(cakeId);
+    await renderAll();
+  }
   function formatCurrency(v) { return currencyFormatter.format(v || 0); }
 
   async function init() {
@@ -516,7 +547,7 @@ const App = (() => {
   }
 
   return {
-    init, openCakeDetail, openCakeModal, saveNewCake, openIngredientModal, saveIngredient, deleteCake, deleteIngredient, resetAllData, restoreIngredients, openEditCakeModal, updateCakeDetails, openAddIngredientToCakeModal, addIngredientToCake, removeIngredientFromCake
+    init, openCakeDetail, openCakeModal, saveNewCake, openIngredientModal, saveIngredient, deleteCake, deleteIngredient, resetAllData, restoreIngredients, openEditCakeModal, updateCakeDetails, openAddIngredientToCakeModal, addIngredientToCake, removeIngredientFromCake, triggerImageUpload, handleImageUpload
   };
 })();
 
