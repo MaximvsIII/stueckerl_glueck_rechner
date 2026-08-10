@@ -5,8 +5,66 @@ const App = (() => {
   const state = {
     db: null,
     activeView: 'home-view',
-    currentCakeId: null
+    currentCakeId: null,
+    lang: 'it'
   };
+
+  function t(key) {
+    const lang = state.lang || 'it';
+    return (Translations[lang] && Translations[lang][key]) || (Translations['it'][key]) || key;
+  }
+
+  function detectLanguage() {
+    const userLang = navigator.language || navigator.userLanguage;
+    if (userLang.startsWith('de')) {
+      state.lang = 'de';
+    } else {
+      state.lang = 'it';
+    }
+  }
+
+  function applyStaticTranslations() {
+    // Header
+    const topbarH1 = document.querySelector('.topbar h1');
+    if (topbarH1) topbarH1.textContent = t('appTitle');
+
+    // Home View
+    const welcomeH2 = document.querySelector('#home-view h2');
+    if (welcomeH2) welcomeH2.textContent = t('welcome');
+    const newCakeHomeBtn = document.getElementById('new-cake-home');
+    if (newCakeHomeBtn) newCakeHomeBtn.innerHTML = `<span>+</span> ${t('newProject')}`;
+    const latestCreationsH3 = document.querySelector('#home-view .section-title-row h3');
+    if (latestCreationsH3) latestCreationsH3.textContent = t('latestCreations');
+
+    // Cakes View
+    const archiveH3 = document.querySelector('#cakes-view .section-title-row h3');
+    if (archiveH3) archiveH3.textContent = t('archive');
+
+    // Ingredients View
+    const pantryH3 = document.querySelector('#ingredients-view .section-title-row h3');
+    if (pantryH3) pantryH3.textContent = t('pantry');
+
+    // Settings View
+    const settingsH3 = document.querySelector('#settings-view .section-title-row h3');
+    if (settingsH3) settingsH3.textContent = t('settings');
+
+    // Back button
+    const backBtn = document.getElementById('back-to-cakes');
+    if (backBtn) backBtn.textContent = t('back');
+
+    // Nav Items
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+      const view = item.getAttribute('data-view');
+      const small = item.querySelector('small');
+      if (small) {
+        if (view === 'home-view') small.textContent = t('home');
+        if (view === 'cakes-view') small.textContent = t('torte');
+        if (view === 'ingredients-view') small.textContent = t('dispensa');
+        if (view === 'settings-view') small.textContent = t('impostazioni');
+      }
+    });
+  }
 
   const currencyFormatter = new Intl.NumberFormat('it-IT', {
     style: 'currency',
@@ -64,7 +122,7 @@ const App = (() => {
 
   async function initDB() {
     try {
-      state.db = await CakeDB.init();
+      state.db = await CakeDB.init(state.lang);
       const settings = await CakeDB.getAll('settings', state.db);
       if (settings.length === 0) {
         await CakeDB.addRecord('settings', state.db, {
@@ -103,7 +161,7 @@ const App = (() => {
           <div style="display:flex; align-items:center; gap:12px;">
             ${imgHtml}
             <div>
-              <p class="eyebrow" style="color:var(--accent-soft); margin:0;">TORTA PERSONALIZZATA</p>
+              <p class="eyebrow" style="color:var(--accent-soft); margin:0;">${t('customCake')}</p>
               <h4>${escapeHtml(cake.name)}</h4>
             </div>
           </div>
@@ -112,16 +170,16 @@ const App = (() => {
 
         <div style="margin-top:15px; display:grid; gap:8px; border-top:1px solid var(--border); padding-top:12px;">
           <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
-            <span style="color:var(--text-muted);">Costo Totale:</span>
+            <span style="color:var(--text-muted);">${t('totalCost')}:</span>
             <span style="font-weight:500;">${formatCurrency(cake.totalCost)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
-            <span style="color:var(--accent);">Prezzo di Vendita:</span>
+            <span style="color:var(--accent);">${t('salePrice')}:</span>
             <span style="font-weight:700; color:var(--accent);">${formatCurrency(cake.salePrice)}</span>
           </div>
         </div>
       </div>
-    `}).join('') : '<div class="card" style="text-align:center; padding:30px;"><p>Nessuna torta salvata.</p></div>';
+    `}).join('') : `<div class="card" style="text-align:center; padding:30px;"><p>${t('noCakesSaved')}</p></div>`;
   }
 
   async function renderIngredients() {
@@ -134,13 +192,13 @@ const App = (() => {
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
-            <p class="eyebrow" style="margin:0;">${escapeHtml(ing.category || 'Ingrediente')}</p>
+            <p class="eyebrow" style="margin:0;">${escapeHtml(ing.category || t('defaultIngredientCategory'))}</p>
             <h4 style="margin:2px 0 8px 0;">${escapeHtml(ing.name)}</h4>
             <p style="font-family:var(--font-mono); font-size:0.85rem;">
               ${ing.packageQuantity}${ing.unitType} @ <span style="color:var(--accent);">${formatCurrency(ing.packagePrice)}</span>
             </p>
           </div>
-          <button class="btn btn-secondary" style="width:auto; padding:8px 12px; font-size:0.8rem;" onclick="App.openIngredientModal(${ing.id})">Modifica</button>
+          <button class="btn btn-secondary" style="width:auto; padding:8px 12px; font-size:0.8rem;" onclick="App.openIngredientModal(${ing.id})">${t('edit')}</button>
         </div>
       </div>
     `).join('');
@@ -169,12 +227,12 @@ const App = (() => {
 
         <div style="margin-top:15px; display:grid; gap:8px; border-top:1px solid var(--border); padding-top:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
-            <span style="color:var(--text-muted);">Prezzo di Vendita</span>
+            <span style="color:var(--text-muted);">${t('salePrice')}</span>
             <span style="font-weight:700; color:var(--accent);">${formatCurrency(cake.salePrice)}</span>
           </div>
         </div>
       </div>
-    `}).join('') : '<div class="card" style="text-align:center; padding:30px;"><p>Nessuna torta nell\'archivio.</p></div>';
+    `}).join('') : `<div class="card" style="text-align:center; padding:30px;"><p>${t('noCakesInArchive')}</p></div>`;
   }
 
   async function renderSettings() {
@@ -218,7 +276,7 @@ const App = (() => {
       ? `<img src="${URL.createObjectURL(cake.imageData)}" class="cake-hero-img" onclick="App.triggerImageUpload()">`
       : `<div class="upload-zone" onclick="App.triggerImageUpload()">
            <span style="font-size:2rem; display:block; margin-bottom:10px;">📸</span>
-           <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">AGGIUNGI FOTO DELLA TORTA</p>
+           <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">${t('addPhoto')}</p>
          </div>`;
 
     detail.innerHTML = `
@@ -226,13 +284,13 @@ const App = (() => {
         ${heroImgHtml}
         <input type="file" id="cake-image-input" accept="image/*" style="display:none;" onchange="App.handleImageUpload(event, ${id})">
 
-        <p class="eyebrow" style="color:var(--accent);">RIEPILOGO COSTI</p>
+        <p class="eyebrow" style="color:var(--accent);">${t('technicalDetails')}</p>
         <h2 style="margin:5px 0 25px 0; font-size:2.2rem;">${escapeHtml(cake.name)}</h2>
 
         <div class="section-block" style="margin-bottom:30px;">
           <div class="section-title-row">
-            <h3 style="font-size:0.65rem;">INGREDIENTI UTILIZZATI</h3>
-            <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.7rem;" onclick="App.openAddIngredientToCakeModal(${id})">+ AGGIUNGI</button>
+            <h3 style="font-size:0.65rem;">${t('composition')}</h3>
+            <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.7rem;" onclick="App.openAddIngredientToCakeModal(${id})">+ ${t('addIngredient')}</button>
           </div>
           <div id="cake-ingredients-list" class="mini-list">
             ${cakeIngredients.length ? cakeIngredients.map(ci => `
@@ -243,36 +301,36 @@ const App = (() => {
                 </div>
                 <div style="text-align:right;">
                   <p style="margin:0; font-weight:600;">${formatCurrency(ci.usedCost)}</p>
-                  <button class="btn-text-danger" onclick="App.removeIngredientFromCake(${ci.id}, ${id})">Rimuovi</button>
+                  <button class="btn-text-danger" onclick="App.removeIngredientFromCake(${ci.id}, ${id})">${t('remove')}</button>
                 </div>
               </div>
-            `).join('') : '<p style="font-size:0.85rem; color:var(--text-muted); padding:10px 0;">Nessun ingrediente aggiunto.</p>'}
+            `).join('') : `<p style="font-size:0.85rem; color:var(--text-muted); padding:10px 0;">${t('noIngredientsAdded')}</p>`}
           </div>
         </div>
 
-        <div class="cost-line"><span>Costo Ingredienti</span> <span>${formatCurrency(cake.ingredientCost)}</span></div>
-        <div class="cost-line"><span>Decorazioni & Extra</span> <span>${formatCurrency(cake.decorationCost)}</span></div>
-        <div class="cost-line"><span>Energia & Utenze</span> <span>${formatCurrency(cake.energyCost)}</span></div>
-        <div class="cost-line"><span>Manodopera</span> <span>${formatCurrency(cake.laborCost)}</span></div>
+        <div class="cost-line"><span>${t('costIngredients')}</span> <span>${formatCurrency(cake.ingredientCost)}</span></div>
+        <div class="cost-line"><span>${t('decorationsExtra')}</span> <span>${formatCurrency(cake.decorationCost)}</span></div>
+        <div class="cost-line"><span>${t('energyUtilities')}</span> <span>${formatCurrency(cake.energyCost)}</span></div>
+        <div class="cost-line"><span>${t('laborCost')}</span> <span>${formatCurrency(cake.laborCost)}</span></div>
 
         <div class="cost-line" style="border-top:2px solid var(--accent); margin-top:15px; padding-top:15px;">
-          <span style="font-weight:700; color:var(--text-main);">COSTO TOTALE</span>
+          <span style="font-weight:700; color:var(--text-main);">${t('totalCostLabel')}</span>
           <span style="font-weight:700; color:var(--text-main);">${formatCurrency(cake.totalCost)}</span>
         </div>
 
         <div class="cost-line" style="border:none;">
-          <span style="font-weight:700; color:var(--accent);">PREZZO VENDITA</span>
+          <span style="font-weight:700; color:var(--accent);">${t('salePriceLabel')}</span>
           <span style="font-weight:700; color:var(--accent);">${formatCurrency(cake.salePrice)}</span>
         </div>
 
         <div class="profit-badge ${profitClass}">
-          <p style="margin:0; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em;">UTILE NETTO (${Math.round(cake.marginPercent)}%)</p>
+          <p style="margin:0; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em;">${t('netProfit')} (${Math.round(cake.marginPercent)}%)</p>
           <p style="margin:5px 0 0 0; font-size:2rem; font-weight:700;">${formatCurrency(cake.profit)}</p>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:30px;">
-           <button class="btn btn-secondary" onclick="App.openEditCakeModal(${id})">DETTAGLI TECNICI</button>
-           <button class="btn btn-danger" onclick="App.deleteCake(${id})">ELIMINA PROGETTO</button>
+           <button class="btn btn-secondary" onclick="App.openEditCakeModal(${id})">${t('technicalDetails')}</button>
+           <button class="btn btn-danger" onclick="App.deleteCake(${id})">${t('deleteProject')}</button>
         </div>
       </div>
     `;
@@ -445,11 +503,11 @@ const App = (() => {
   async function restoreIngredients() {
     if (!state.db) return;
     try {
-      await CakeDB.seedDemoData(state.db);
-      alert("Dispensa aggiornata con i dati predefiniti!");
+      await CakeDB.seedDemoData(state.db, state.lang);
+      alert(t('alertPantryRestored'));
       await renderIngredients();
     } catch (e) {
-      alert("Errore durante l'aggiornamento.");
+      alert(t('alertError'));
     }
   }
 
@@ -538,8 +596,10 @@ const App = (() => {
   function formatCurrency(v) { return currencyFormatter.format(v || 0); }
 
   async function init() {
+    detectLanguage();
     registerServiceWorker();
     wireGlobalEvents();
+    applyStaticTranslations();
     const ok = await initDB();
     if (ok) {
       await renderAll();

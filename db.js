@@ -35,24 +35,26 @@ const CakeDB = (() => {
     });
   }
 
-  async function seedDemoData(db) {
+  async function seedDemoData(db, lang = 'it') {
     const existing = await getAll('ingredients', db);
     if (existing.length > 0) return;
+
+    const t = (key) => (Translations[lang] && Translations[lang][key]) || Translations['it'][key];
 
     return new Promise((resolve) => {
       const tx = db.transaction(['ingredients'], 'readwrite');
       const store = tx.objectStore('ingredients');
       const demo = [
-        { name: 'Uova', category: 'Uova', unitType: 'piece', packageQuantity: 10, packagePrice: 2.79 },
-        { name: 'Farina', category: 'Farine', unitType: 'g', packageQuantity: 1000, packagePrice: 1.59 },
-        { name: 'Zucchero', category: 'Zuccheri', unitType: 'g', packageQuantity: 1000, packagePrice: 1.79 },
-        { name: 'Burro', category: 'Latticini', unitType: 'g', packageQuantity: 250, packagePrice: 2.79 },
-        { name: 'Panna', category: 'Latticini', unitType: 'ml', packageQuantity: 250, packagePrice: 1.49 },
-        { name: 'Mascarpone', category: 'Latticini', unitType: 'g', packageQuantity: 500, packagePrice: 4.39 },
-        { name: 'Cioccolato Fondente', category: 'Cioccolato', unitType: 'g', packageQuantity: 200, packagePrice: 2.99 },
-        { name: 'Lievito', category: 'Lieviti', unitType: 'g', packageQuantity: 16, packagePrice: 0.50 },
-        { name: 'Estratto Vaniglia', category: 'Aromi', unitType: 'ml', packageQuantity: 30, packagePrice: 4.50 },
-        { name: 'Fragole', category: 'Frutta', unitType: 'g', packageQuantity: 250, packagePrice: 3.50 }
+        { name: t('ing_eggs'), category: 'Uova', unitType: 'piece', packageQuantity: 10, packagePrice: 2.79 },
+        { name: t('ing_flour'), category: 'Farine', unitType: 'g', packageQuantity: 1000, packagePrice: 1.59 },
+        { name: t('ing_sugar'), category: 'Zuccheri', unitType: 'g', packageQuantity: 1000, packagePrice: 1.79 },
+        { name: t('ing_butter'), category: 'Latticini', unitType: 'g', packageQuantity: 250, packagePrice: 2.79 },
+        { name: t('ing_cream'), category: 'Latticini', unitType: 'ml', packageQuantity: 250, packagePrice: 1.49 },
+        { name: t('ing_mascarpone'), category: 'Latticini', unitType: 'g', packageQuantity: 500, packagePrice: 4.39 },
+        { name: t('ing_chocolate'), category: 'Cioccolato', unitType: 'g', packageQuantity: 200, packagePrice: 2.99 },
+        { name: t('ing_yeast'), category: 'Lieviti', unitType: 'g', packageQuantity: 16, packagePrice: 0.50 },
+        { name: t('ing_vanilla'), category: 'Aromi', unitType: 'ml', packageQuantity: 30, packagePrice: 4.50 },
+        { name: t('ing_strawberries'), category: 'Frutta', unitType: 'g', packageQuantity: 250, packagePrice: 3.50 }
       ];
 
       demo.forEach(item => {
@@ -65,12 +67,13 @@ const CakeDB = (() => {
   }
 
   return {
-    init: async () => {
+    init: async (lang = 'it') => {
       const db = await openDatabase();
-      await seedDemoData(db);
+      await seedDemoData(db, lang);
       return db;
     },
     getAll,
+    seedDemoData,
     getById: (store, db, id) => new Promise((res, rej) => {
       const req = db.transaction([store], 'readonly').objectStore(store).get(id);
       req.onsuccess = () => res(req.result);
