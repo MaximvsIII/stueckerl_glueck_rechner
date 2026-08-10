@@ -14,13 +14,26 @@ const App = (() => {
     return (Translations[lang] && Translations[lang][key]) || (Translations['it'][key]) || key;
   }
 
-  function detectLanguage() {
-    const userLang = navigator.language || navigator.userLanguage;
-    if (userLang.startsWith('de')) {
-      state.lang = 'de';
-    } else {
-      state.lang = 'it';
+  async function detectLanguage() {
+    // 1. Prova a leggere dai settings nel DB se già inizializzato
+    if (state.db) {
+      const settings = await CakeDB.getAll('settings', state.db);
+      if (settings && settings[0] && settings[0].language) {
+        state.lang = settings[0].language;
+        return;
+      }
     }
+
+    // 2. Prova LocalStorage per un avvio immediato
+    const savedLang = localStorage.getItem('app_lang');
+    if (savedLang) {
+      state.lang = savedLang;
+      return;
+    }
+
+    // 3. Fallback al linguaggio del browser
+    const userLang = navigator.language || navigator.userLanguage;
+    state.lang = userLang.startsWith('de') ? 'de' : 'it';
   }
 
   function applyStaticTranslations() {
@@ -126,15 +139,17 @@ const App = (() => {
       const settings = await CakeDB.getAll('settings', state.db);
       if (settings.length === 0) {
         await CakeDB.addRecord('settings', state.db, {
-          currency: 'EUR', lang: state.lang, laborHourlyRate: 15, energyCostPerKwh: 0.35, defaultMargin: 60,
+          currency: 'EUR',
+          laborHourlyRate: 15,
+          energyCostPerKwh: 0.35,
+          defaultMargin: 60,
+          language: state.lang,
           createdAt: new Date().toISOString()
         });
-      } else {
-        // Se esiste già un'impostazione lingua, usala
-        if (settings[0].lang) state.lang = settings[0].lang;
       }
       return true;
     } catch (err) {
+      console.error("DB Init Error:", err);
       return false;
     }
   }
@@ -151,28 +166,6 @@ const App = (() => {
     if (!list) return;
     const cakes = await CakeDB.getAll('cakes', state.db);
     cakes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    const items = cakes.slice(0, 3);
-
-    list.innerHTML = items.length ? items.map(cake => {
-      const imgHtml = cake.imageData
-        ? `<img src="${URL.createObjectURL(cake.imageData)}" class="cake-thumb">`
-        : `<div class="image-placeholder">🎂</div>`;
-
-      return `
-      <div class="card" onclick="App.openCakeDetail(${cake.id})">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-          <div style="display:flex; align-items:center; gap:12px;">
-            ${imgHtml}
-            <div>
-              <h4 style="margin:0 0 4px 0;">${escapeHtml(cake.name)}</h4>
-              <p style="margin:0; font-size:0.75rem; color:var(--text-muted);">${new Date(cake.createdAt).toLocaleDateString(state.lang === 'de' ? 'de-DE' : 'it-IT')}</p>
-            </div>
-          </div>
-          <span style="font-size:1.2rem; opacity:0.5;">→</span>
-        </div>
-      </div>
-    `}).join('') : `<div class="card" style="text-align:center; padding:30px;"><p>${t('noCakesSaved')}</p></div>`;
-  }
     const latest = cakes.slice(0, 5);
 
     list.innerHTML = latest.length ? latest.map(cake => {
@@ -211,20 +204,12 @@ const App = (() => {
     const list = document.getElementById('ingredients-list');
     if (!list) return;
     const items = await CakeDB.getAll('ingredients', state.db);
-    // Ordiniamo per nome tradotto nella lingua corrente
-    items.sort((a, b) => {
-      const nameA = a.translationKey ? t(a.translationKey) : a.name;
-      const nameB = b.translationKey ? t(b.translationKey) : b.name;
-      return nameA.localeCompare(nameB, state.lang);
-    });
+    items.sort((a, b) => a.name.localeCompare(b.name));
 
     list.innerHTML = items.map(ing => {
       const displayName = ing.translationKey ? t(ing.translationKey) : ing.name;
       const displayCategory = ing.category && ing.category.startsWith('cat_') ? t(ing.category) : (ing.category || t('defaultIngredientCategory'));
-
-      // Estrae il simbolo dell'unità (es. "g" da "Grammi (g)") se presente, altrimenti usa l'originale
-      const unitText = t('unit_' + ing.unitType);
-      const unitSymbol = unitText.includes('(') ? unitText.match(/\(([^)]+)\)/)[1] : ing.unitType;
+      const displayUnit = t('unit_' + ing.unitType);
 
       return `
       <div class="card">
@@ -233,7 +218,7 @@ const App = (() => {
             <p class="eyebrow" style="margin:0;">${escapeHtml(displayCategory)}</p>
             <h4 style="margin:2px 0 8px 0;">${escapeHtml(displayName)}</h4>
             <p style="font-family:var(--font-mono); font-size:0.85rem;">
-              ${ing.packageQuantity}${unitSymbol} @ <span style="color:var(--accent);">${formatCurrency(ing.packagePrice)}</span>
+              ${ing.packageQuantity}${displayUnit.match(/\((.*)\)/)?.[1] || ing.unitType} @ <span style="color:var(--accent);">${formatCurrency(ing.packagePrice)}</span>
             </p>
           </div>
           <button class="btn btn-secondary" style="width:auto; padding:8px 12px; font-size:0.8rem;" onclick="App.openIngredientModal(${ing.id})">${t('edit')}</button>
@@ -303,18 +288,18 @@ const App = (() => {
 
   async function changeLanguage(newLang) {
     state.lang = newLang;
+    localStorage.setItem('app_lang', newLang);
 
-    try {
-      const settings = (await CakeDB.getAll('settings', state.db))[0];
-      if (settings) {
-        await CakeDB.putRecord('settings', state.db, { ...settings, lang: newLang });
+    if (state.db) {
+      const settings = await CakeDB.getAll('settings', state.db);
+      if (settings && settings[0]) {
+        settings[0].language = newLang;
+        await CakeDB.putRecord('settings', state.db, settings[0]);
       }
-    } catch (e) {
-      console.warn("Could not save language preference", e);
     }
 
     applyStaticTranslations();
-    await renderAll();
+    renderAll();
   }
 
   // --- AZIONI ---
@@ -469,7 +454,7 @@ const App = (() => {
       <h3 style="font-size:1.6rem; margin-bottom:25px; font-weight:700; letter-spacing:-0.03em;">${t('newProjectTitle')}</h3>
       <label>${t('cakeName')}</label>
       <input type="text" id="m-cake-name" placeholder="${t('cakeNamePlaceholder')}" style="margin-bottom:25px">
-      <button class="btn btn-primary" onclick="App.saveNewCake()">${t('startProject')}</button>
+      <button class="btn btn-primary" onclick="App.saveNewCake()">成品 START PROJECT</button>
     `);
   }
 
@@ -496,7 +481,7 @@ const App = (() => {
       <input type="text" id="m-ing-name" value="${ing ? escapeHtml(ing.name) : ''}" style="margin-bottom:20px">
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
-        <div>
+        <div Tune>
           <label>${t('quantity')}</label>
           <input type="number" id="m-ing-qty" value="${ing ? ing.packageQuantity : ''}">
         </div>
@@ -567,11 +552,23 @@ const App = (() => {
 
   async function restoreIngredients() {
     if (!state.db) return;
+    if (!confirm(t('confirmResetData'))) return;
+
     try {
-      await CakeDB.seedDemoData(state.db, state.lang, true);
+      // Pulizia ingredienti esistenti
+      const tx = state.db.transaction(['ingredients'], 'readwrite');
+      tx.objectStore('ingredients').clear();
+
+      await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+
+      await CakeDB.seedDemoData(state.db, state.lang);
       alert(t('alertPantryRestored'));
       await renderIngredients();
     } catch (e) {
+      console.error(e);
       alert(t('alertError'));
     }
   }
@@ -593,7 +590,7 @@ const App = (() => {
       <input type="text" id="e-cake-name" value="${escapeHtml(cake.name)}" style="margin-bottom:15px">
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
-        <div>
+        <div Tune>
           <label>${t('decorations')} (€)</label>
           <input type="number" step="0.01" id="e-cake-dec" value="${cake.decorationCost || 0}">
         </div>
@@ -661,12 +658,20 @@ const App = (() => {
   function formatCurrency(v) { return currencyFormatter.format(v || 0); }
 
   async function init() {
-    detectLanguage();
-    const ok = await initDB();
     registerServiceWorker();
-    wireGlobalEvents();
+
+    // Rilevamento iniziale (sincrono/veloce da localStorage/browser)
+    const quickLang = localStorage.getItem('app_lang') || ( (navigator.language || navigator.userLanguage).startsWith('de') ? 'de' : 'it' );
+    state.lang = quickLang;
+
     applyStaticTranslations();
+    wireGlobalEvents();
+
+    const ok = await initDB();
     if (ok) {
+      // Dopo init DB, verifichiamo se c'è una lingua diversa salvata nei settings
+      await detectLanguage();
+      applyStaticTranslations();
       await renderAll();
     }
   }
