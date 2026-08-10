@@ -1,6 +1,6 @@
-const CACHE_NAME = 'calcolatore-torte-cache-v5';
+const CACHE_NAME = 'calcolatore-torte-v6'; // Incrementa questo numero ad ogni update
 
-const APP_SHELL = [
+const ASSETS = [
   './',
   './index.html',
   './style.css',
@@ -11,98 +11,46 @@ const APP_SHELL = [
   './icons/icon-512.png'
 ];
 
-// INSTALL
+// INSTALL: Scarica gli asset e forza l'attivazione
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
+      .then(cache => cache.addAll(ASSETS))
       .then(() => self.skipWaiting())
   );
 });
 
-// ACTIVATE
+// ACTIVATE: Pulisce le vecchie cache e prende il controllo
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
-        return Promise.all(
-          cacheNames
-            .filter(cacheName => cacheName !== CACHE_NAME)
-            .map(cacheName => caches.delete(cacheName))
-        );
-      })
-      .then(() => self.clients.claim())
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.filter(key => key !== CACHE_NAME)
+            .map(key => caches.delete(key))
+      );
+    }).then(() => self.clients.claim())
   );
 });
 
-// MESSAGGI DAL CLIENT
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-
-// FETCH
+// FETCH: Strategia Network-First con fallback in cache
 self.addEventListener('fetch', event => {
-  const request = event.request;
+  if (event.request.method !== 'GET') return;
 
-  // Gestiamo solo richieste GET
-  if (request.method !== 'GET') {
-    return;
-  }
-
-  const requestUrl = new URL(request.url);
-
-  // Gestiamo solo le risorse dello stesso sito
-  if (requestUrl.origin !== self.location.origin) {
-    return;
-  }
-
-  // INDEX.HTML
-  // Prima prova sempre a prendere la versione aggiornata dalla rete.
-  // Se non c'è connessione, utilizza quella presente nella cache.
-  if (
-    requestUrl.pathname.endsWith('/') ||
-    requestUrl.pathname.endsWith('/index.html')
-  ) {
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-          if (response && response.ok) {
-            const responseClone = response.clone();
-
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(request, responseClone);
-            });
-          }
-
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request);
-        })
-    );
-
-    return;
-  }
-
-  // CSS, JS, immagini e altre risorse locali
-  // Network-first: usa la versione online quando disponibile.
   event.respondWith(
-    fetch(request)
+    fetch(event.request)
       .then(response => {
-        if (response && response.ok) {
-          const responseClone = response.clone();
-
+        // Se la risposta è valida, la cloniamo nella cache
+        if (response && response.status === 200 && response.type === 'basic') {
+          const responseToCache = response.clone();
           caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, responseClone);
+            cache.put(event.request, responseToCache);
           });
         }
-
         return response;
       })
       .catch(() => {
-        return caches.match(request);
+        // Se il network fallisce, prova a restituire dalla cache
+        return caches.match(event.request);
       })
   );
 });

@@ -12,72 +12,28 @@ const App = (() => {
   });
 
   function registerServiceWorker() {
-  if (
-    'serviceWorker' in navigator &&
-    (location.protocol === 'http:' || location.protocol === 'https:')
-  ) {
-    window.addEventListener('load', async () => {
-      try {
-        const registration = await navigator.serviceWorker.register(
-          './service-worker.js'
-        );
-
-        // Controlla immediatamente se esiste una nuova versione
-        await registration.update();
-
-        // Se c'è già un nuovo Service Worker in attesa,
-        // attivalo immediatamente
-        if (registration.waiting) {
-          registration.waiting.postMessage({
-            type: 'SKIP_WAITING'
-          });
-        }
-
-        // Rileva l'installazione di un nuovo Service Worker
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-
-          if (!newWorker) {
-            return;
-          }
-
-          newWorker.addEventListener('statechange', () => {
-            if (
-              newWorker.state === 'installed' &&
-              navigator.serviceWorker.controller
-            ) {
-              newWorker.postMessage({
-                type: 'SKIP_WAITING'
-              });
-            }
-          });
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').then(reg => {
+          reg.onupdatefound = () => {
+            const installingWorker = reg.installing;
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed') {
+                if (navigator.serviceWorker.controller) {
+                  // Una nuova versione è disponibile
+                  if (confirm("Nuovo aggiornamento disponibile! Vuoi ricaricare l'app per vedere le modifiche?")) {
+                    window.location.reload();
+                  }
+                }
+              }
+            };
+          };
+        }).catch(error => {
+          console.error('Errore registrazione Service Worker:', error);
         });
-
-        // Quando il nuovo Service Worker prende il controllo,
-        // ricarica la pagina una sola volta
-        let refreshing = false;
-
-        navigator.serviceWorker.addEventListener(
-          'controllerchange',
-          () => {
-            if (refreshing) {
-              return;
-            }
-
-            refreshing = true;
-            window.location.reload();
-          }
-        );
-
-      } catch (error) {
-        console.warn(
-          'Service worker non registrato:',
-          error
-        );
-      }
-    });
+      });
+    }
   }
-}
 
   function wireGlobalEvents() {
     document.querySelectorAll('.nav-item').forEach((button) => {

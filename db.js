@@ -322,3 +322,40 @@ const CakeDB = (() => {
     getStore
   };
 })();
+ost,
+      totalCost,
+      profit,
+      marginPercent,
+      updatedAt: new Date().toISOString()
+    };
+
+    await putRecord('cakes', db, updatedCake);
+    return updatedCake;
+  }
+
+  async function init() {
+    const db = await openDatabase();
+    await seedDemoData(db);
+    return db;
+  }
+
+  return {
+    DB_NAME,
+    DB_VERSION,
+    openDatabase,
+    init,
+    getAll,
+    cleanupDuplicateIngredients,
+    getById,
+    getAllByIndex,
+    putRecord,
+    addRecord,
+    deleteRecord,
+    clearStore,
+    seedDemoData,
+    syncCakeTotals,
+    createSeedIngredients,
+    transaction,
+    getStore
+  };
+})();
