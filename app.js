@@ -32,7 +32,7 @@ const App = (() => {
     const welcomeH2 = document.querySelector('#home-view h2');
     if (welcomeH2) welcomeH2.textContent = t('welcome');
     const newCakeHomeBtn = document.getElementById('new-cake-home');
-    if (newCakeHomeBtn) newCakeHomeBtn.innerHTML = `<span>+</span> ${t('newProject')}`;
+    if (newCakeHomeBtn) newCakeHomeBtn.innerHTML = `<span>+</span> <strong>${t('newProject')}</strong>`;
     const latestCreationsH3 = document.querySelector('#home-view .section-title-row h3');
     if (latestCreationsH3) latestCreationsH3.textContent = t('latestCreations');
 
@@ -241,20 +241,32 @@ const App = (() => {
     const s = (await CakeDB.getAll('settings', state.db))[0] || {};
     cont.innerHTML = `
       <div class="settings-box">
-        <label>Valuta Predefinita</label>
+        <label>${t('currencyDefault')}</label>
         <input type="text" value="${s.currency || 'EUR'}" readonly style="margin-bottom:20px;">
+
+        <label>${t('language')}</label>
+        <select onchange="App.changeLanguage(this.value)" style="margin-bottom:20px; width:100%; padding:12px; border-radius:8px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color);">
+          <option value="it" ${state.lang === 'it' ? 'selected' : ''}>Italiano</option>
+          <option value="de" ${state.lang === 'de' ? 'selected' : ''}>Deutsch</option>
+        </select>
 
         <div style="display:flex; flex-direction:column; gap:12px;">
           <button class="btn btn-secondary" onclick="App.restoreIngredients()">
-            <span>🔄</span> RIPRISTINA INGREDIENTI
+            <span>🔄</span> ${t('restoreIngredients')}
           </button>
           <button class="btn btn-danger" onclick="App.resetAllData()">
-            <span>🗑️</span> ELIMINA TUTTI I DATI
+            <span>🗑️</span> ${t('deleteAllData')}
           </button>
         </div>
       </div>
-      <p style="text-align:center; font-size:0.7rem; color:var(--text-muted); margin-top:20px;">Versione Premium 1.2.0</p>
+      <p style="text-align:center; font-size:0.7rem; color:var(--text-muted); margin-top:20px;">${t('version')} 1.2.0</p>
     `;
+  }
+
+  function changeLanguage(newLang) {
+    state.lang = newLang;
+    applyStaticTranslations();
+    renderAll();
   }
 
   // --- AZIONI ---
@@ -400,17 +412,17 @@ const App = (() => {
 
   async function openCakeModal() {
     openModal(`
-      <p class="eyebrow">CREAZIONE</p>
-      <h3 style="font-size:1.6rem; margin-bottom:25px; font-weight:700; letter-spacing:-0.03em;">Nuovo Progetto</h3>
-      <label>Nome della Torta</label>
-      <input type="text" id="m-cake-name" placeholder="es. Red Velvet Matrimonio" style="margin-bottom:25px">
-      <button class="btn btn-primary" onclick="App.saveNewCake()">INIZIA PROGETTO</button>
+      <p class="eyebrow">${t('creation')}</p>
+      <h3 style="font-size:1.6rem; margin-bottom:25px; font-weight:700; letter-spacing:-0.03em;">${t('newProjectTitle')}</h3>
+      <label>${t('cakeName')}</label>
+      <input type="text" id="m-cake-name" placeholder="${t('cakeNamePlaceholder')}" style="margin-bottom:25px">
+      <button class="btn btn-primary" onclick="App.saveNewCake()">${t('startProject')}</button>
     `);
   }
 
   async function saveNewCake() {
     const name = document.getElementById('m-cake-name').value.trim();
-    if (!name) return alert("Inserisci un nome");
+    if (!name) return alert(t('alertInvalidData'));
     const id = await CakeDB.addRecord('cakes', state.db, {
       name, createdAt: new Date().toISOString(),
       ingredientCost:0, decorationCost:0, packagingCost:0, energyCost:0, laborCost:0,
@@ -424,19 +436,19 @@ const App = (() => {
   async function openIngredientModal(id = null) {
     const ing = id ? await CakeDB.getById('ingredients', state.db, id) : null;
     openModal(`
-      <p class="eyebrow">${id ? 'MODIFICA' : 'AGGIUNGI'}</p>
-      <h3 style="font-size:1.6rem; margin-bottom:25px; font-weight:700; letter-spacing:-0.03em;">Ingrediente</h3>
+      <p class="eyebrow">${id ? t('edit').toUpperCase() : t('addIngredient').split(' ')[0].toUpperCase()}</p>
+      <h3 style="font-size:1.6rem; margin-bottom:25px; font-weight:700; letter-spacing:-0.03em;">${t('defaultIngredientCategory')}</h3>
 
-      <label>Nome</label>
+      <label>${t('name')}</label>
       <input type="text" id="m-ing-name" value="${ing ? escapeHtml(ing.name) : ''}" style="margin-bottom:20px">
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
         <div>
-          <label>Quantità</label>
+          <label>${t('quantity')}</label>
           <input type="number" id="m-ing-qty" value="${ing ? ing.packageQuantity : ''}">
         </div>
         <div>
-          <label>Unità</label>
+          <label>${t('unit')}</label>
           <select id="m-ing-unit">
             <option value="g" ${ing?.unitType==='g'?'selected':''}>Grammi (g)</option>
             <option value="kg" ${ing?.unitType==='kg'?'selected':''}>Chili (kg)</option>
@@ -446,11 +458,11 @@ const App = (() => {
         </div>
       </div>
 
-      <label>Prezzo Confezione (€)</label>
+      <label>${t('packagePriceLabel')}</label>
       <input type="number" step="0.01" id="m-ing-price" value="${ing ? ing.packagePrice : ''}" style="margin-bottom:30px">
 
-      <button class="btn btn-primary" onclick="App.saveIngredient(${id})">SALVA IN DISPENSA</button>
-      ${id ? `<button class="btn btn-ghost" style="margin-top:12px; color:var(--danger); border-color:rgba(255,94,94,0.2);" onclick="App.deleteIngredient(${id})">ELIMINA</button>` : ''}
+      <button class="btn btn-primary" onclick="App.saveIngredient(${id})">${t('saveInPantry')}</button>
+      ${id ? `<button class="btn btn-ghost" style="margin-top:12px; color:var(--danger); border-color:rgba(255,94,94,0.2);" onclick="App.deleteIngredient(${id})">${t('delete').toUpperCase()}</button>` : ''}
     `);
   }
 
@@ -460,7 +472,7 @@ const App = (() => {
     const price = Number(document.getElementById('m-ing-price').value);
     const unit = document.getElementById('m-ing-unit').value;
 
-    if (!name || qty <= 0) return alert("Dati non validi");
+    if (!name || qty <= 0) return alert(t('alertInvalidData'));
 
     const unitCost = price / qty;
     const data = { name, packageQuantity: qty, packagePrice: price, unitType: unit, unitCost, updatedAt: new Date().toISOString() };
@@ -476,7 +488,7 @@ const App = (() => {
   }
 
   async function deleteCake(id) {
-    if (confirm("Sei sicuro di voler eliminare questa torta?")) {
+    if (confirm(t('confirmDeleteCake'))) {
       await CakeDB.deleteRecord('cakes', state.db, id);
       closeModal();
       switchView('cakes-view');
@@ -485,7 +497,7 @@ const App = (() => {
   }
 
   async function deleteIngredient(id) {
-    if (confirm("Eliminare l'ingrediente dalla dispensa?")) {
+    if (confirm(t('confirmDeleteIngredient'))) {
       await CakeDB.deleteRecord('ingredients', state.db, id);
       closeModal();
       await renderIngredients();
@@ -493,7 +505,7 @@ const App = (() => {
   }
 
   async function resetAllData() {
-    if (confirm("ATTENZIONE: Stai per cancellare tutte le torte e gli ingredienti. Procedere?")) {
+    if (confirm(t('confirmResetData'))) {
       const dbs = await window.indexedDB.databases();
       dbs.forEach(db => window.indexedDB.deleteDatabase(db.name));
       window.location.reload();
@@ -521,38 +533,38 @@ const App = (() => {
   async function openEditCakeModal(id) {
     const cake = await CakeDB.getById('cakes', state.db, id);
     openModal(`
-      <p class="eyebrow">DETTAGLI TECNICI</p>
-      <h3 style="font-size:1.6rem; margin-bottom:20px; font-weight:700;">Modifica ${escapeHtml(cake.name)}</h3>
+      <p class="eyebrow">${t('technicalDetails')}</p>
+      <h3 style="font-size:1.6rem; margin-bottom:20px; font-weight:700;">${t('edit')} ${escapeHtml(cake.name)}</h3>
 
-      <label>Nome Progetto</label>
+      <label>${t('name')}</label>
       <input type="text" id="e-cake-name" value="${escapeHtml(cake.name)}" style="margin-bottom:15px">
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
         <div>
-          <label>Decorazioni (€)</label>
+          <label>${t('decorations')} (€)</label>
           <input type="number" step="0.01" id="e-cake-dec" value="${cake.decorationCost || 0}">
         </div>
         <div>
-          <label>Imballaggio (€)</label>
+          <label>${t('packaging')} (€)</label>
           <input type="number" step="0.01" id="e-cake-pack" value="${cake.packagingCost || 0}">
         </div>
       </div>
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
         <div>
-          <label>Manodopera (€)</label>
+          <label>${t('labor')} (€)</label>
           <input type="number" step="0.01" id="e-cake-labor" value="${cake.laborCost || 0}">
         </div>
         <div>
-          <label>Energia (€)</label>
+          <label>${t('energy')} (€)</label>
           <input type="number" step="0.01" id="e-cake-energy" value="${cake.energyCost || 0}">
         </div>
       </div>
 
-      <label>Prezzo di Vendita (€)</label>
+      <label>${t('salePrice')} (€)</label>
       <input type="number" step="0.01" id="e-cake-sale" value="${cake.salePrice || 0}" style="margin-bottom:25px; border-color:var(--accent);">
 
-      <button class="btn btn-primary" onclick="App.updateCakeDetails(${id})">AGGIORNA CALCOLI</button>
+      <button class="btn btn-primary" onclick="App.updateCakeDetails(${id})">${t('updateCalculations')}</button>
     `);
   }
 
@@ -607,7 +619,7 @@ const App = (() => {
   }
 
   return {
-    init, openCakeDetail, openCakeModal, saveNewCake, openIngredientModal, saveIngredient, deleteCake, deleteIngredient, resetAllData, restoreIngredients, openEditCakeModal, updateCakeDetails, openAddIngredientToCakeModal, addIngredientToCake, removeIngredientFromCake, triggerImageUpload, handleImageUpload
+    init, openCakeDetail, openCakeModal, saveNewCake, openIngredientModal, saveIngredient, deleteCake, deleteIngredient, resetAllData, restoreIngredients, openEditCakeModal, updateCakeDetails, openAddIngredientToCakeModal, addIngredientToCake, removeIngredientFromCake, triggerImageUpload, handleImageUpload, changeLanguage
   };
 })();
 
